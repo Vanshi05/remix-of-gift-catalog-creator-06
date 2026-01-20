@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { InvoiceSearch } from '@/components/invoice/InvoiceSearch';
 import { InvoicePreview } from '@/components/invoice/InvoicePreview';
 import { InvoiceActions } from '@/components/invoice/InvoiceActions';
-import { PasswordGate } from '@/components/invoice/PasswordGate';
 import { useInvoice } from '@/hooks/useInvoice';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -15,7 +14,6 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function InvoiceGenerator() {
   const [searchParams] = useSearchParams();
-  const [authenticated, setAuthenticated] = useState(false);
   const { 
     invoiceData, 
     recentInvoices, 
@@ -26,26 +24,14 @@ export default function InvoiceGenerator() {
   } = useInvoice();
 
   useEffect(() => {
-    // Check session auth
-    const isAuth = sessionStorage.getItem('invoice_auth') === 'true';
-    setAuthenticated(isAuth);
-  }, []);
-
-  useEffect(() => {
-    if (authenticated) {
-      fetchRecentInvoices();
-      
-      // Auto-fetch if invoice number in URL
-      const invoiceNumber = searchParams.get('number');
-      if (invoiceNumber) {
-        fetchInvoice(invoiceNumber);
-      }
+    fetchRecentInvoices();
+    
+    // Auto-fetch if invoice number in URL
+    const invoiceNumber = searchParams.get('number');
+    if (invoiceNumber) {
+      fetchInvoice(invoiceNumber);
     }
-  }, [authenticated, searchParams, fetchRecentInvoices, fetchInvoice]);
-
-  if (!authenticated) {
-    return <PasswordGate onAuthenticate={() => setAuthenticated(true)} />;
-  }
+  }, [searchParams, fetchRecentInvoices, fetchInvoice]);
 
   return (
     <div className="min-h-screen bg-background">
