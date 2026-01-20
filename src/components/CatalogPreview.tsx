@@ -1,0 +1,178 @@
+import { forwardRef } from "react";
+import { CatalogPageData } from "./CatalogForm";
+
+interface CatalogPreviewProps {
+  page: CatalogPageData;
+}
+
+export const CatalogPreview = forwardRef<HTMLDivElement, CatalogPreviewProps>(
+  ({ page }, ref) => {
+    // Full Image Page - just the image covering the entire page
+    if (page.type === "full-image") {
+      return (
+        <div
+          ref={ref}
+          className="catalog-page bg-white overflow-hidden"
+          style={{ fontFamily: "'Asap', sans-serif" }}
+        >
+          {page.image ? (
+            <img
+              src={page.image}
+              alt="Full page"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-accent/10 to-accent/5">
+              <div className="text-center text-muted-foreground/50">
+                <div className="w-32 h-20 mx-auto mb-4 border-2 border-dashed border-accent/30 rounded-lg flex items-center justify-center">
+                  <span className="text-4xl">🖼️</span>
+                </div>
+                <p className="text-sm">Upload full page image</p>
+                <p className="text-xs text-muted-foreground/40 mt-1">1200×630px recommended</p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Format price with Indian Rupee symbol
+    const formatPrice = (price?: number) => {
+      if (!price) return null;
+      return `₹${price.toLocaleString('en-IN')}`;
+    };
+
+    const salePrice = page.preTaxPrice;
+    const originalPrice = salePrice ? Math.round(salePrice * 1.33) : null; // ~25% markup for strikethrough
+
+    // Template Page - exact match to reference design
+    return (
+      <div
+        ref={ref}
+        className="catalog-page overflow-hidden flex"
+        style={{ fontFamily: "'Asap', sans-serif", backgroundColor: '#ede2d6' }}
+      >
+        {/* Left - Image Section (65% width to match template) */}
+        <div className="w-[65%] h-full relative" style={{ backgroundColor: '#ede2d6' }}>
+          {page.image ? (
+            <img
+              src={page.image}
+              alt="Hamper"
+              className="w-full h-full object-cover"
+              style={{ display: 'block' }}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#ede2d6' }}>
+              <div className="text-center text-muted-foreground/50">
+                <div className="w-24 h-24 mx-auto mb-4 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center">
+                  <span className="text-4xl">📦</span>
+                </div>
+                <p className="text-sm">Upload hamper photo</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right - Beige background with overlapping white card */}
+        <div 
+          className="w-[35%] h-full relative"
+          style={{ backgroundColor: '#ede2d6' }}
+        >
+          {/* White content card - overlaps image */}
+          <div 
+            className="absolute top-6 bottom-6 right-4 bg-white flex flex-col px-6 py-6"
+            style={{ 
+              left: '-30px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+            }}
+          >
+            {/* Title */}
+            <h1 
+              className="text-[18px] font-bold mb-3 leading-tight"
+              style={{ 
+                color: '#7a6451',
+                fontFamily: "'Asap', sans-serif"
+              }}
+            >
+              {page.title || "Hamper Title"}
+            </h1>
+
+            {/* Description */}
+            <p 
+              className="text-[10px] leading-[1.7] mb-4"
+              style={{ 
+                color: '#7a6451',
+                fontFamily: "'Asap', sans-serif"
+              }}
+            >
+              {page.description || "Add a compelling description of your curated hamper..."}
+            </p>
+
+            {/* Items List */}
+            <ul className="flex-1 space-y-2 overflow-hidden">
+              {page.items.length > 0 && page.items.some(item => item) ? (
+                page.items.filter(item => item).map((item, index) => (
+                  <li 
+                    key={index} 
+                    className="flex items-start gap-2 text-[10px]"
+                    style={{ 
+                      color: '#7a6451',
+                      fontFamily: "'Asap', sans-serif"
+                    }}
+                  >
+                    <span 
+                      className="mt-[5px] w-[3px] h-[3px] rounded-full shrink-0"
+                      style={{ backgroundColor: '#7a6451' }}
+                    />
+                    <span className="leading-[1.5]">{item}</span>
+                  </li>
+                ))
+              ) : (
+                <li className="text-[10px] text-muted-foreground/50 italic">
+                  Add items to your hamper...
+                </li>
+              )}
+            </ul>
+
+            {/* Footer Section */}
+            <div className="mt-auto pt-3 space-y-2 border-t border-gray-200">
+              {/* Eco Stats */}
+              <p 
+                className="text-[10px] italic pt-2"
+                style={{ color: '#2D6A4F', fontFamily: "'Asap', sans-serif" }}
+              >
+                {page.plasticPercent || "80"}% less plastic pollution | {page.carbonPercent || "71"}% less carbon emissions
+              </p>
+
+              {/* Pricing */}
+              <div className="flex items-baseline gap-2 flex-wrap">
+                {originalPrice && (
+                  <span 
+                    className="text-[10px] line-through"
+                    style={{ color: '#7a6451', fontFamily: "'Asap', sans-serif" }}
+                  >
+                    MRP {originalPrice.toLocaleString('en-IN')}
+                  </span>
+                )}
+                <span 
+                  className="text-[10px] font-bold"
+                  style={{ color: '#7a6451', fontFamily: "'Asap', sans-serif" }}
+                >
+                  {formatPrice(salePrice) || "₹750"}
+                </span>
+                <span 
+                  className="text-[10px]"
+                  style={{ color: '#7a6451', fontFamily: "'Asap', sans-serif" }}
+                >
+                  Bulk pricing | Tax & shipping extra
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+);
+
+CatalogPreview.displayName = "CatalogPreview";
