@@ -6,7 +6,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -14,6 +13,8 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const ghId = url.searchParams.get("gh_id");
+
+    console.log("hamper called with gh_id:", ghId);
 
     if (!ghId) {
       return new Response(
@@ -25,8 +26,9 @@ serve(async (req) => {
     const baseId = Deno.env.get("AIRTABLE_BASE_ID");
     const apiKey = Deno.env.get("AIRTABLE_TOKEN");
 
+    console.log("Env check - AIRTABLE_BASE_ID:", !!baseId, "AIRTABLE_TOKEN:", !!apiKey);
+
     if (!baseId || !apiKey) {
-      console.error("Missing AIRTABLE_BASE_ID or AIRTABLE_TOKEN");
       return new Response(
         JSON.stringify({ success: false, error: "Missing Airtable configuration" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -36,8 +38,6 @@ serve(async (req) => {
     const tableName = encodeURIComponent("Gift Hamper");
     const formula = encodeURIComponent(`{gh_id}="${ghId}"`);
     const airtableUrl = `https://api.airtable.com/v0/${baseId}/${tableName}?filterByFormula=${formula}&maxRecords=1`;
-
-    console.log(`Fetching Gift Hamper: ${ghId}`);
 
     const response = await fetch(airtableUrl, {
       headers: { Authorization: `Bearer ${apiKey}` },

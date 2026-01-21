@@ -112,10 +112,7 @@ export function CatalogForm({ pages, activePageIndex, onPagesChange, onActivePag
     setFetchingGhid((prev) => ({ ...prev, [pageId]: true }));
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-gift-hamper?gh_id=${encodeURIComponent(ghId)}`,
-        { headers: { 'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
-      );
+      const response = await fetch(`/api/get-gift-hamper?gh_id=${encodeURIComponent(ghId)}`);
       const result = await response.json();
 
       if (!response.ok || !result.success) {
@@ -189,10 +186,7 @@ export function CatalogForm({ pages, activePageIndex, onPagesChange, onActivePag
 
     for (const ghId of ghidList) {
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-gift-hamper?gh_id=${encodeURIComponent(ghId)}`,
-          { headers: { 'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
-        );
+        const response = await fetch(`/api/get-gift-hamper?gh_id=${encodeURIComponent(ghId)}`);
         const result = await response.json();
 
         if (!response.ok || !result.success) {
