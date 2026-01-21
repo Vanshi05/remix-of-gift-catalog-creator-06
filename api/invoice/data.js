@@ -24,7 +24,7 @@ export default async function handler(req, res) {
 
     // Fetch Sale record
     const saleTableName = encodeURIComponent("Sale");
-    const saleFormula = encodeURIComponent(`{sales_invoice_number}="${invoiceNumber}"`);
+    const saleFormula = encodeURIComponent(`{Proforma Invoice Number}="${invoiceNumber}"`);
     const saleUrl = `https://api.airtable.com/v0/${baseId}/${saleTableName}?filterByFormula=${saleFormula}&maxRecords=1`;
 
     const saleResponse = await fetch(saleUrl, {
