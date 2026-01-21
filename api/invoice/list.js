@@ -1,7 +1,7 @@
 //api/invoice/list.js
 export default async function handler(req, res) {
   try {
-    const baseId = process.env.AIRTABLE_BASE_ID;
+    const baseId = process.env.AIRTABLE_SALE_BASE_ID;
     const apiKey = process.env.AIRTABLE_API_KEY || process.env.AIRTABLE_TOKEN;
 
     if (!baseId || !apiKey) {

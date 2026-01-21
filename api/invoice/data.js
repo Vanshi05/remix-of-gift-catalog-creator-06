@@ -10,7 +10,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const baseId = process.env.AIRTABLE_BASE_ID;
+    const baseId = process.env.AIRTABLE_SALE_BASE_ID;
     // Support either env name (your spec used AIRTABLE_TOKEN)
     const apiKey = process.env.AIRTABLE_API_KEY || process.env.AIRTABLE_TOKEN;
 
