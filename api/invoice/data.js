@@ -54,7 +54,7 @@ export default async function handler(req, res) {
     // Fetch Sale_LI (line items) linked to this Sale
     const liTableName = encodeURIComponent("Sale_LI");
     // Assuming Sale_LI has a linked field called "Sale" that links to Sale table
-    const liFormula = encodeURIComponent(`FIND("${saleRecordId}", ARRAYJOIN({Sale}))`);
+    const liFormula = encodeURIComponent(`FIND("${so}", ARRAYJOIN({Sale}))`);
     const liUrl = `https://api.airtable.com/v0/${baseId}/${liTableName}?filterByFormula=${liFormula}`;
 
     const liResponse = await fetch(liUrl, {
