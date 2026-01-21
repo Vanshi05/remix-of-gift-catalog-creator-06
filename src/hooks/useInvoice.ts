@@ -1,6 +1,9 @@
 import { useState, useCallback } from 'react';
 import { InvoiceData, RecentInvoice } from '@/types/invoice';
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
 export function useInvoice() {
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
   const [recentInvoices, setRecentInvoices] = useState<RecentInvoice[]>([]);
@@ -18,7 +21,10 @@ export function useInvoice() {
     setInvoiceData(null);
 
     try {
-      const response = await fetch(`/api/invoice/data?invoiceNumber=${encodeURIComponent(invoiceNumber)}`);
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/invoice-data?invoiceNumber=${encodeURIComponent(invoiceNumber)}`,
+        { headers: { 'apikey': SUPABASE_ANON_KEY } }
+      );
       const result = await response.json();
 
       if (!result.success) {
@@ -36,7 +42,10 @@ export function useInvoice() {
 
   const fetchRecentInvoices = useCallback(async () => {
     try {
-      const response = await fetch('/api/invoice/list');
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/invoice-list`,
+        { headers: { 'apikey': SUPABASE_ANON_KEY } }
+      );
       const result = await response.json();
 
       if (result.success) {
@@ -49,7 +58,10 @@ export function useInvoice() {
 
   const fetchForPdf = useCallback(async (invoiceNumber: string): Promise<InvoiceData | null> => {
     try {
-      const response = await fetch(`/api/invoice/pdf?invoiceNumber=${encodeURIComponent(invoiceNumber)}`);
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/invoice-pdf?invoiceNumber=${encodeURIComponent(invoiceNumber)}`,
+        { headers: { 'apikey': SUPABASE_ANON_KEY } }
+      );
       const result = await response.json();
 
       if (!result.success) {
