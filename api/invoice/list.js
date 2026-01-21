@@ -2,13 +2,17 @@
 export default async function handler(req, res) {
   try {
     const baseId = process.env.AIRTABLE_SALE_BASE_ID;
-    const apiKey = process.env.AIRTABLE_API_KEY || process.env.AIRTABLE_TOKEN;
+    const apiKey =
+      process.env.AIRTABLE_SALE_API_KEY ||
+      process.env.AIRTABLE_SALE_TOKEN ||
+      process.env.AIRTABLE_API_KEY ||
+      process.env.AIRTABLE_TOKEN;
 
     if (!baseId || !apiKey) {
       return res.status(500).json({
         success: false,
         error:
-          "Missing Airtable env vars. Set AIRTABLE_BASE_ID and AIRTABLE_TOKEN (or AIRTABLE_API_KEY) in Vercel and redeploy."
+          "Missing Airtable env vars. Set AIRTABLE_SALE_BASE_ID and AIRTABLE_SALE_TOKEN (or AIRTABLE_SALE_API_KEY). You can also use AIRTABLE_TOKEN/AIRTABLE_API_KEY if the same token has access to both bases."
       });
     }
 
