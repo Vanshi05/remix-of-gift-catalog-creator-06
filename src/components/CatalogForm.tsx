@@ -14,7 +14,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 export interface CatalogPageData {
   id: string;
@@ -113,20 +112,14 @@ export function CatalogForm({ pages, activePageIndex, onPagesChange, onActivePag
     setFetchingGhid((prev) => ({ ...prev, [pageId]: true }));
 
     try {
-      const { data: result, error } = await supabase.functions.invoke('get-gift-hamper', {
-        body: null,
-        headers: { 'Content-Type': 'application/json' },
-      }).then(async (res) => {
-        // Use query params via URL rewrite - invoke with GET simulation
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-gift-hamper?gh_id=${encodeURIComponent(ghId)}`,
-          { headers: { 'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
-        );
-        return { data: await response.json(), error: null };
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-gift-hamper?gh_id=${encodeURIComponent(ghId)}`,
+        { headers: { 'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
+      );
+      const result = await response.json();
 
-      if (error || !result.success) {
-        toast.error(result?.error || error?.message || "Failed to fetch gift hamper");
+      if (!response.ok || !result.success) {
+        toast.error(result?.error || "Failed to fetch gift hamper");
         return;
       }
 
