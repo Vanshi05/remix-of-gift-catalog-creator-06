@@ -25,7 +25,6 @@ serve(async (req) => {
     const apiKey = Deno.env.get("AIRTABLE_SALE_TOKEN");
 
     if (!baseId || !apiKey) {
-      console.error("Missing AIRTABLE_SALE_BASE_ID or AIRTABLE_SALE_TOKEN");
       return new Response(
         JSON.stringify({ success: false, error: "Missing Airtable Sale configuration" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -37,15 +36,12 @@ serve(async (req) => {
     const saleFormula = encodeURIComponent(`{sales_invoice_number}="${invoiceNumber}"`);
     const saleUrl = `https://api.airtable.com/v0/${baseId}/${saleTableName}?filterByFormula=${saleFormula}&maxRecords=1`;
 
-    console.log(`Fetching invoice: ${invoiceNumber}`);
-
     const saleResponse = await fetch(saleUrl, {
       headers: { Authorization: `Bearer ${apiKey}` },
     });
 
     if (!saleResponse.ok) {
       const errorText = await saleResponse.text();
-      console.error("Sale fetch error:", errorText);
       return new Response(
         JSON.stringify({ success: false, error: errorText }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -70,15 +66,12 @@ serve(async (req) => {
     const liFormula = encodeURIComponent(`FIND("${saleRecordId}", ARRAYJOIN({so}))`);
     const liUrl = `https://api.airtable.com/v0/${baseId}/${liTableName}?filterByFormula=${liFormula}`;
 
-    console.log("Fetching line items for sale:", saleRecordId);
-
     const liResponse = await fetch(liUrl, {
       headers: { Authorization: `Bearer ${apiKey}` },
     });
 
     if (!liResponse.ok) {
       const errorText = await liResponse.text();
-      console.error("Line items fetch error:", errorText);
       return new Response(
         JSON.stringify({ success: false, error: errorText }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -118,7 +111,6 @@ serve(async (req) => {
             billingAddress: saleFields["Billing Address"] || saleFields.billing_address || "",
             gst: saleFields["GST"] || saleFields.gst || "",
             contactPerson: saleFields["SPOC Details"] || saleFields.spoc_details || "",
-            recordId: saleRecordId,
           },
           items: lineItems,
           totals: {
@@ -126,6 +118,24 @@ serve(async (req) => {
             taxAmount: Math.round(taxAmount * 100) / 100,
             grandTotal: Math.round(grandTotal * 100) / 100,
           },
+          seller: {
+            name: "Your Company Name",
+            address: "Your Company Address",
+            gst: "Your GST Number",
+            phone: "Your Phone",
+            email: "your@email.com",
+          },
+          bankDetails: {
+            bankName: "Bank Name",
+            accountNumber: "Account Number",
+            ifsc: "IFSC Code",
+            branch: "Branch Name",
+          },
+          terms: [
+            "Payment is due within 30 days",
+            "Please include invoice number in payment reference",
+            "Goods once sold will not be taken back",
+          ],
         },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
