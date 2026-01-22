@@ -1,6 +1,9 @@
 import { useState, useCallback } from 'react';
 import { InvoiceData, RecentInvoice } from '@/types/invoice';
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
 export function useInvoice() {
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
   const [recentInvoices, setRecentInvoices] = useState<RecentInvoice[]>([]);
@@ -18,7 +21,17 @@ export function useInvoice() {
     setInvoiceData(null);
 
     try {
-      const response = await fetch(`/api/invoice/data?invoiceNumber=${encodeURIComponent(invoiceNumber)}`);
+      // Use Supabase Edge Function
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/invoicedata?invoiceNumber=${encodeURIComponent(invoiceNumber)}`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
       const result = await response.json();
 
       if (!result.success) {
@@ -28,6 +41,7 @@ export function useInvoice() {
 
       setInvoiceData(result.data);
     } catch (err) {
+      console.error('Invoice fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch invoice');
     } finally {
       setLoading(false);
@@ -36,7 +50,17 @@ export function useInvoice() {
 
   const fetchRecentInvoices = useCallback(async () => {
     try {
-      const response = await fetch('/api/invoice/list');
+      // Use Supabase Edge Function for invoice list
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/invoice-list`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
       const result = await response.json();
 
       if (result.success) {
@@ -49,7 +73,17 @@ export function useInvoice() {
 
   const fetchForPdf = useCallback(async (invoiceNumber: string): Promise<InvoiceData | null> => {
     try {
-      const response = await fetch(`/api/invoice/pdf?invoiceNumber=${encodeURIComponent(invoiceNumber)}`);
+      // Use Supabase Edge Function
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/invoicedata?invoiceNumber=${encodeURIComponent(invoiceNumber)}`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
       const result = await response.json();
 
       if (!result.success) {
