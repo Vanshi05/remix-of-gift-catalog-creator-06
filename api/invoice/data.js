@@ -14,7 +14,9 @@ export default async function handler(req, res) {
     // Prefer a sale-specific token if provided (useful when Sale is in a different base/workspace)
     const apiKey =
       process.env.AIRTABLE_SALE_API_KEY ||
-      process.env.AIRTABLE_SALE_TOKEN ;
+      process.env.AIRTABLE_SALE_TOKEN ||
+      process.env.AIRTABLE_API_KEY ||
+      process.env.AIRTABLE_TOKEN;
 
     if (!baseId || !apiKey) {
       return res.status(500).json({
