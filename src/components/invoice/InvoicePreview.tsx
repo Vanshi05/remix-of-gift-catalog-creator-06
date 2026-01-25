@@ -96,22 +96,25 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
               <TableRow className="bg-gray-100">
                 <TableHead className="w-12 text-center font-semibold text-black">No</TableHead>
                 <TableHead className="font-semibold text-black">Product</TableHead>
-                <TableHead className="text-right font-semibold text-black">MRP (Rs)</TableHead>
                 <TableHead className="text-right font-semibold text-black">Pre GST Price (Rs)</TableHead>
+                <TableHead className="text-center font-semibold text-black">GST %</TableHead>
                 <TableHead className="text-center font-semibold text-black">Qty</TableHead>
                 <TableHead className="text-right font-semibold text-black">Amount (Rs)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item, index) => {
-                const amount = (item.pre_tax_price || 0) * (item.qty_sold || 1);
+            {items.map((item, index) => {
+                const gstPercent = item.gst || 0;
+                const preTaxAmount = item.pre_tax_price || 0;
+                const priceWithGst = preTaxAmount + (preTaxAmount * gstPercent / 100);
+                const amount = priceWithGst * (item.qty_sold || 1);
                 return (
                   <>
                     <TableRow key={item.id || index} className="border-b">
                       <TableCell className="text-center align-top">{index + 1}</TableCell>
                       <TableCell className="font-medium align-top">{item.gift_hamper_name}</TableCell>
-                      <TableCell className="text-right align-top">{formatCurrency(item.mrp || 0)}</TableCell>
-                      <TableCell className="text-right align-top">{formatCurrency(item.pre_tax_price || 0)}</TableCell>
+                      <TableCell className="text-right align-top">{formatCurrency(preTaxAmount)}</TableCell>
+                      <TableCell className="text-center align-top">{gstPercent}%</TableCell>
                       <TableCell className="text-center align-top">{item.qty_sold}</TableCell>
                       <TableCell className="text-right font-medium align-top">{formatCurrency(amount)}</TableCell>
                     </TableRow>
