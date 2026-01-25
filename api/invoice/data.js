@@ -54,11 +54,18 @@ export default async function handler(req, res) {
     const saleRecord = saleData.records[0];
     const saleFields = saleRecord.fields;
     const saleRecordId = saleRecord.id;
+    
+    // Extract so_id display value for linking to Sale_LI
+    const soId = saleFields.so_id || saleFields["so_id"] || "";
+    
+    if (!soId) {
+      console.warn("Warning: so_id not found in Sale record for invoice:", invoiceNumber);
+    }
 
-    // Fetch Sale_LI (line items) linked to this Sale
+    // Fetch Sale_LI (line items) linked to this Sale via so_id
     const liTableName = encodeURIComponent("Sale_LI");
-    // Assuming Sale_LI has a linked field called "Sale" that links to Sale table
-    const liFormula = encodeURIComponent(`FIND("${saleRecordId}", ARRAYJOIN({so}))`);
+    // Use so_id display value since ARRAYJOIN on linked records returns display values
+    const liFormula = encodeURIComponent(`FIND("${soId}", ARRAYJOIN({so}))`);
     const liUrl = `https://api.airtable.com/v0/${baseId}/${liTableName}?filterByFormula=${liFormula}`;
 
     const liResponse = await fetch(liUrl, {
