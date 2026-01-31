@@ -102,31 +102,42 @@ export default async function handler(req, res) {
 
     const grandTotal = taxableAmount + taxAmount;
 
-    // Parse SPOC Details field to extract contact person, mobile, and email
+    // Try to get contact details from dedicated fields first, then parse from SPOC Details
     const spocDetails = saleFields["SPOC Details"] || saleFields.spoc_details || "";
-    let contactPerson = "";
-    let mobile = "";
-    let email = "";
+    
+    // Check for dedicated fields first
+    let contactPerson = saleFields["Contact Person"] || saleFields["contact_person"] || saleFields["SPOC Name"] || saleFields["spoc_name"] || "";
+    let mobile = saleFields["Mobile"] || saleFields["mobile"] || saleFields["Phone"] || saleFields["phone"] || saleFields["SPOC Mobile"] || saleFields["spoc_mobile"] || "";
+    let email = saleFields["Email"] || saleFields["email"] || saleFields["SPOC Email"] || saleFields["spoc_email"] || "";
 
-    if (spocDetails) {
-      // Extract contact person name (after "Contact person:" and before "Mobile:")
-      const contactMatch = spocDetails.match(/Contact\s*person:\s*([^M]+?)(?:\s*Mobile:|$)/i);
-      if (contactMatch) {
-        contactPerson = contactMatch[1].trim();
+    // If not found in dedicated fields, parse from SPOC Details
+    if (spocDetails && (!contactPerson || !mobile || !email)) {
+      // Extract contact person name (after "Contact person:" and before "Mobile:" or "Email:")
+      if (!contactPerson) {
+        const contactMatch = spocDetails.match(/Contact\s*person:\s*([^ME]+?)(?:\s*(?:Mobile|Email):|$)/i);
+        if (contactMatch) {
+          contactPerson = contactMatch[1].trim();
+        }
       }
       
-      // Extract mobile number
-      const mobileMatch = spocDetails.match(/Mobile:\s*(\d+)/i);
-      if (mobileMatch) {
-        mobile = mobileMatch[1].trim();
+      // Extract mobile number - look for any 10+ digit number
+      if (!mobile) {
+        const mobileMatch = spocDetails.match(/Mobile:\s*(\d+)/i) || spocDetails.match(/(\d{10,})/);
+        if (mobileMatch) {
+          mobile = mobileMatch[1].trim();
+        }
       }
       
-      // Extract email
-      const emailMatch = spocDetails.match(/Email:\s*([^\s]+)/i);
-      if (emailMatch) {
-        email = emailMatch[1].trim();
+      // Extract email - look for email pattern
+      if (!email) {
+        const emailMatch = spocDetails.match(/Email:\s*([^\s]+@[^\s]+)/i) || spocDetails.match(/([^\s]+@[^\s]+\.[^\s]+)/i);
+        if (emailMatch) {
+          email = emailMatch[1].trim();
+        }
       }
     }
+
+    console.log("SPOC Details parsed:", { spocDetails, contactPerson, mobile, email });
 
     return res.status(200).json({
       success: true,
