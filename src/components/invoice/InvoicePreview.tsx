@@ -85,6 +85,12 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
               <p className="whitespace-pre-line text-gray-700">{invoice.billingAddress || "N/A"}</p>
               {invoice.gst && <p className="text-gray-700">GST IN: {invoice.gst}</p>}
               {invoice.contactPerson && <p className="text-gray-700">Contact person: {invoice.contactPerson}</p>}
+              {invoice.mobile && <p className="text-gray-700">Mobile: {invoice.mobile}</p>}
+              {invoice.email && (
+                <p className="text-gray-700">
+                  Email: <a href={`mailto:${invoice.email}`} className="text-blue-600 underline hover:text-blue-800">{invoice.email}</a>
+                </p>
+              )}
             </div>
           </div>
         </div>

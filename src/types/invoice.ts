@@ -14,6 +14,8 @@ export interface InvoiceHeader {
   billingAddress: string;
   gst: string;
   contactPerson: string;
+  mobile?: string;
+  email?: string;
   recordId?: string;
 }
 

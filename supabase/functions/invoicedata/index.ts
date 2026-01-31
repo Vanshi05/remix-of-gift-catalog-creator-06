@@ -115,6 +115,8 @@ serve(async (req) => {
             billingAddress: saleFields["Billing Address"] || saleFields.billing_address || "",
             gst: saleFields["GST"] || saleFields.gst || "",
             contactPerson: saleFields["SPOC Details"] || saleFields.spoc_details || "",
+            mobile: saleFields["Mobile"] || saleFields.mobile || saleFields["Phone"] || saleFields.phone || "",
+            email: saleFields["Email"] || saleFields.email || "",
             recordId: saleRecordId,
           },
           items: lineItems,
