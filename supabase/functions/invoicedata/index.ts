@@ -105,6 +105,37 @@ serve(async (req) => {
 
     const grandTotal = taxableAmount + taxAmount;
 
+    // Parse SPOC Details field to extract contact person, mobile, and email
+    const spocDetails = saleFields["SPOC Details"] || saleFields.spoc_details || "";
+    let contactPerson = "";
+    let mobile = "";
+    let email = "";
+
+    if (spocDetails) {
+      // Extract contact person name (after "Contact person:" and before "Mobile:")
+      const contactMatch = spocDetails.match(/Contact\s*person:\s*([^M]+?)(?:\s*Mobile:|$)/i);
+      if (contactMatch) {
+        contactPerson = contactMatch[1].trim();
+      }
+      
+      // Extract mobile number
+      const mobileMatch = spocDetails.match(/Mobile:\s*(\d+)/i);
+      if (mobileMatch) {
+        mobile = mobileMatch[1].trim();
+      }
+      
+      // Extract email
+      const emailMatch = spocDetails.match(/Email:\s*([^\s]+)/i);
+      if (emailMatch) {
+        email = emailMatch[1].trim();
+      }
+    }
+
+    // Use individual fields if they exist, otherwise use parsed values
+    const finalContactPerson = saleFields["Contact Person"] || contactPerson;
+    const finalMobile = saleFields["Mobile"] || saleFields["Phone"] || mobile;
+    const finalEmail = saleFields["Email"] || email;
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -114,9 +145,9 @@ serve(async (req) => {
             invoiceDate: saleFields["Invoice Date"] || saleFields.invoice_date || "",
             billingAddress: saleFields["Billing Address"] || saleFields.billing_address || "",
             gst: saleFields["GST"] || saleFields.gst || "",
-            contactPerson: saleFields["SPOC Details"] || saleFields.spoc_details || "",
-            mobile: saleFields["Mobile"] || saleFields.mobile || saleFields["Phone"] || saleFields.phone || "",
-            email: saleFields["Email"] || saleFields.email || "",
+            contactPerson: finalContactPerson,
+            mobile: finalMobile,
+            email: finalEmail,
             recordId: saleRecordId,
           },
           items: lineItems,
