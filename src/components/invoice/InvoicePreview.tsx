@@ -111,7 +111,9 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                 
                 // Parse gh_config into bullet points if it contains multiple items
                 const configItems = item.gh_config 
-                  ? item.gh_config.split(/[,\n]/).map(s => s.trim()).filter(Boolean)
+                  ? (typeof item.gh_config === 'string' 
+                      ? item.gh_config.split(/[,\n]/).map(s => s.trim()).filter(Boolean)
+                      : Array.isArray(item.gh_config) ? item.gh_config : [])
                   : [];
                 
                 return (
