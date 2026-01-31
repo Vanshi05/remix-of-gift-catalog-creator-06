@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { FileDown, Copy, Loader2, CheckCircle } from 'lucide-react';
+import { FileDown, Loader2 } from 'lucide-react';
 import { InvoiceData } from '@/types/invoice';
 import { toast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
@@ -12,7 +12,6 @@ interface InvoiceActionsProps {
 
 export function InvoiceActions({ invoiceData }: InvoiceActionsProps) {
   const [generating, setGenerating] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const generatePDF = async () => {
     setGenerating(true);
@@ -63,17 +62,6 @@ export function InvoiceActions({ invoiceData }: InvoiceActionsProps) {
     }
   };
 
-  const copyShareLink = () => {
-    const link = `${window.location.origin}/invoice?number=${encodeURIComponent(invoiceData.invoice.invoiceNumber)}`;
-    navigator.clipboard.writeText(link);
-    setCopied(true);
-    toast({
-      title: "Link Copied",
-      description: "Invoice share link copied to clipboard."
-    });
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
     <div className="flex gap-3 flex-wrap">
       <Button onClick={generatePDF} disabled={generating}>
@@ -83,15 +71,6 @@ export function InvoiceActions({ invoiceData }: InvoiceActionsProps) {
           <FileDown className="h-4 w-4 mr-2" />
         )}
         {generating ? 'Generating...' : 'Download PDF'}
-      </Button>
-
-      <Button variant="outline" onClick={copyShareLink}>
-        {copied ? (
-          <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-        ) : (
-          <Copy className="h-4 w-4 mr-2" />
-        )}
-        {copied ? 'Copied!' : 'Copy Share Link'}
       </Button>
     </div>
   );
