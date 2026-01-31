@@ -108,26 +108,30 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                 const preTaxAmount = item.pre_tax_price || 0;
                 const priceWithGst = preTaxAmount + (preTaxAmount * gstPercent / 100);
                 const amount = priceWithGst * (item.qty_sold || 1);
+                
+                // Parse gh_config into bullet points if it contains multiple items
+                const configItems = item.gh_config 
+                  ? item.gh_config.split(/[,\n]/).map(s => s.trim()).filter(Boolean)
+                  : [];
+                
                 return (
-                  <>
-                    <TableRow key={item.id || index} className="border-b">
-                      <TableCell className="text-center align-top">{index + 1}</TableCell>
-                      <TableCell className="font-medium align-top">{item.gift_hamper_name}</TableCell>
-                      <TableCell className="text-right align-top">{formatCurrency(preTaxAmount)}</TableCell>
-                      <TableCell className="text-center align-top">{gstPercent}%</TableCell>
-                      <TableCell className="text-center align-top">{item.qty_sold}</TableCell>
-                      <TableCell className="text-right font-medium align-top">{formatCurrency(amount)}</TableCell>
-                    </TableRow>
-                    {/* Show gh_config as product description if available */}
-                    {item.gh_config && (
-                      <TableRow key={`${item.id || index}-config`} className="border-b bg-gray-50">
-                        <TableCell></TableCell>
-                        <TableCell colSpan={5} className="text-sm text-gray-600 italic py-2">
-                          {item.gh_config}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </>
+                  <TableRow key={item.id || index} className="border-b">
+                    <TableCell className="text-center align-top">{index + 1}</TableCell>
+                    <TableCell className="align-top">
+                      <div className="font-bold">{item.gift_hamper_name}</div>
+                      {configItems.length > 0 && (
+                        <ul className="mt-2 ml-4 list-disc text-sm text-gray-700 space-y-1">
+                          {configItems.map((configItem, idx) => (
+                            <li key={idx}>{configItem}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right align-top">{formatCurrency(preTaxAmount)}</TableCell>
+                    <TableCell className="text-center align-top">{gstPercent}%</TableCell>
+                    <TableCell className="text-center align-top">{item.qty_sold}</TableCell>
+                    <TableCell className="text-right font-medium align-top">{formatCurrency(amount)}</TableCell>
+                  </TableRow>
                 );
               })}
             </TableBody>
