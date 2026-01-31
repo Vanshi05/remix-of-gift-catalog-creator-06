@@ -9,6 +9,17 @@ interface InvoicePreviewProps {
   data: InvoiceData;
 }
 
+// Editable span component for inline editing
+const EditableText = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <span
+    contentEditable
+    suppressContentEditableWarning
+    className={`outline-none focus:bg-yellow-100 focus:px-1 rounded ${className}`}
+  >
+    {children}
+  </span>
+);
+
 export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
   ({ data }, ref) => {
     const { invoice, items, totals, seller, bankDetails, terms } = data;
@@ -46,14 +57,19 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
 
     return (
       <Card ref={ref} className="p-8 bg-white text-black print:shadow-none" id="invoice-preview">
+        {/* Editable hint */}
+        <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 print:hidden">
+          💡 Click on any text to edit it directly. Changes will be reflected in the PDF.
+        </div>
+        
         {/* Header with Logo and Invoice Info */}
         <div className="flex justify-between items-start mb-6">
           <div className="space-y-1">
             <p className="text-sm">
-              <span className="font-semibold">Invoice Number:</span> {invoice.invoiceNumber}
+              <span className="font-semibold">Invoice Number:</span> <EditableText>{invoice.invoiceNumber}</EditableText>
             </p>
             <p className="text-sm">
-              <span className="font-semibold">Invoice Date:</span> {invoice.invoiceDate}
+              <span className="font-semibold">Invoice Date:</span> <EditableText>{invoice.invoiceDate}</EditableText>
             </p>
           </div>
           <img src={loopifyLogo} alt="Loopify Logo" className="h-16 object-contain" />
@@ -72,9 +88,9 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
           <div>
             <h3 className="font-semibold text-sm uppercase text-gray-600 mb-2">Seller:</h3>
             <div className="space-y-1 text-sm">
-              <p className="font-bold">{defaultSeller.name}</p>
-              <p className="whitespace-pre-line text-gray-700">{defaultSeller.address}</p>
-              <p className="text-gray-700">GST # : {defaultSeller.gst}</p>
+              <p className="font-bold"><EditableText>{defaultSeller.name}</EditableText></p>
+              <p className="whitespace-pre-line text-gray-700"><EditableText>{defaultSeller.address}</EditableText></p>
+              <p className="text-gray-700">GST # : <EditableText>{defaultSeller.gst}</EditableText></p>
             </div>
           </div>
 
@@ -82,15 +98,13 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
           <div>
             <h3 className="font-semibold text-sm uppercase text-gray-600 mb-2">Billing Address:</h3>
             <div className="space-y-1 text-sm">
-              <p className="whitespace-pre-line text-gray-700">{invoice.billingAddress || "N/A"}</p>
-              {invoice.gst && <p className="text-gray-700">GST IN: {invoice.gst}</p>}
-              {invoice.contactPerson && <p className="text-gray-700">Contact person: {invoice.contactPerson}</p>}
-              {invoice.mobile && <p className="text-gray-700">Mobile: {invoice.mobile}</p>}
-              {invoice.email && (
-                <p className="text-gray-700">
-                  Email: <a href={`mailto:${invoice.email}`} className="text-blue-600 underline hover:text-blue-800">{invoice.email}</a>
-                </p>
-              )}
+              <p className="whitespace-pre-line text-gray-700"><EditableText>{invoice.billingAddress || "N/A"}</EditableText></p>
+              {invoice.gst && <p className="text-gray-700">GST IN: <EditableText>{invoice.gst}</EditableText></p>}
+              <p className="text-gray-700">Contact person: <EditableText>{invoice.contactPerson || "-"}</EditableText></p>
+              <p className="text-gray-700">Mobile: <EditableText>{invoice.mobile || "-"}</EditableText></p>
+              <p className="text-gray-700">
+                Email: <EditableText>{invoice.email || "-"}</EditableText>
+              </p>
             </div>
           </div>
         </div>
@@ -126,19 +140,19 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                   <TableRow key={item.id || index} className="border-b">
                     <TableCell className="text-center align-top">{index + 1}</TableCell>
                     <TableCell className="align-top">
-                      <div className="font-bold">{item.gift_hamper_name}</div>
+                      <div className="font-bold"><EditableText>{item.gift_hamper_name}</EditableText></div>
                       {configItems.length > 0 && (
                         <ul className="mt-2 ml-4 list-disc text-sm text-gray-700 space-y-1">
                           {configItems.map((configItem, idx) => (
-                            <li key={idx}>{configItem}</li>
+                            <li key={idx}><EditableText>{configItem}</EditableText></li>
                           ))}
                         </ul>
                       )}
                     </TableCell>
-                    <TableCell className="text-right align-top">{formatCurrency(preTaxAmount)}</TableCell>
-                    <TableCell className="text-center align-top">{gstPercent}%</TableCell>
-                    <TableCell className="text-center align-top">{item.qty_sold}</TableCell>
-                    <TableCell className="text-right font-medium align-top">{formatCurrency(amount)}</TableCell>
+                    <TableCell className="text-right align-top"><EditableText>{formatCurrency(preTaxAmount)}</EditableText></TableCell>
+                    <TableCell className="text-center align-top"><EditableText>{gstPercent}%</EditableText></TableCell>
+                    <TableCell className="text-center align-top"><EditableText>{item.qty_sold}</EditableText></TableCell>
+                    <TableCell className="text-right font-medium align-top"><EditableText>{formatCurrency(amount)}</EditableText></TableCell>
                   </TableRow>
                 );
               })}
