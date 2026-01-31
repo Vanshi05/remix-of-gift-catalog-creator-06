@@ -102,6 +102,32 @@ export default async function handler(req, res) {
 
     const grandTotal = taxableAmount + taxAmount;
 
+    // Parse SPOC Details field to extract contact person, mobile, and email
+    const spocDetails = saleFields["SPOC Details"] || saleFields.spoc_details || "";
+    let contactPerson = "";
+    let mobile = "";
+    let email = "";
+
+    if (spocDetails) {
+      // Extract contact person name (after "Contact person:" and before "Mobile:")
+      const contactMatch = spocDetails.match(/Contact\s*person:\s*([^M]+?)(?:\s*Mobile:|$)/i);
+      if (contactMatch) {
+        contactPerson = contactMatch[1].trim();
+      }
+      
+      // Extract mobile number
+      const mobileMatch = spocDetails.match(/Mobile:\s*(\d+)/i);
+      if (mobileMatch) {
+        mobile = mobileMatch[1].trim();
+      }
+      
+      // Extract email
+      const emailMatch = spocDetails.match(/Email:\s*([^\s]+)/i);
+      if (emailMatch) {
+        email = emailMatch[1].trim();
+      }
+    }
+
     return res.status(200).json({
       success: true,
       data: {
@@ -110,7 +136,9 @@ export default async function handler(req, res) {
           invoiceDate: saleFields["Invoice Date"] || saleFields.invoice_date || "",
           billingAddress: saleFields["Billing Address"] || saleFields.billing_address || "",
           gst: saleFields["GST"] || saleFields.gst || "",
-          contactPerson: saleFields["SPOC Details"] || saleFields.spoc_details || "",
+          contactPerson: contactPerson,
+          mobile: mobile,
+          email: email,
           recordId: saleRecordId
         },
         items: lineItems,
