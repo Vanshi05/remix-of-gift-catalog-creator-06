@@ -193,7 +193,9 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
 
         {/* Footer */}
         <div className="text-center mt-8 pt-4 border-t">
-          <p className="text-sm text-gray-500">www.loopify.world</p>
+          <a href="https://www.loopify.world" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-500 hover:text-gray-700 underline">
+            www.loopify.world
+          </a>
         </div>
       </Card>
     );
