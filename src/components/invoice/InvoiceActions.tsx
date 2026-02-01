@@ -21,6 +21,12 @@ export function InvoiceActions({ invoiceData }: InvoiceActionsProps) {
         throw new Error('Invoice preview not found');
       }
 
+      // Hide the edit hint before capturing
+      const editHint = element.querySelector('.bg-blue-50.border-blue-200');
+      if (editHint) {
+        (editHint as HTMLElement).style.display = 'none';
+      }
+
       // A4 portrait dimensions: 210mm x 297mm
       // At 96 DPI: 794 x 1123 pixels
       const fixedWidth = 794;
@@ -50,6 +56,11 @@ export function InvoiceActions({ invoiceData }: InvoiceActionsProps) {
       element.style.minWidth = originalMinWidth;
       element.style.maxWidth = originalMaxWidth;
 
+      // Restore edit hint visibility
+      if (editHint) {
+        (editHint as HTMLElement).style.display = '';
+      }
+
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -62,13 +73,12 @@ export function InvoiceActions({ invoiceData }: InvoiceActionsProps) {
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
       
-      // Calculate ratio to fit content within page with margins
-      const margin = 10;
+      // Scale to full page width with minimal margins
+      const margin = 5;
       const availableWidth = pdfWidth - (margin * 2);
-      const availableHeight = pdfHeight - (margin * 2);
-      const ratio = Math.min(availableWidth / imgWidth, availableHeight / imgHeight);
+      const ratio = availableWidth / imgWidth;
       
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgX = margin;
       const imgY = margin;
 
       pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
