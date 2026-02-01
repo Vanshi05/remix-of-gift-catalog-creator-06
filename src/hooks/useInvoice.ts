@@ -68,6 +68,10 @@ export function useInvoice() {
     setError(null);
   }, []);
 
+  const updateInvoiceData = useCallback((updater: (prev: InvoiceData) => InvoiceData) => {
+    setInvoiceData(prev => prev ? updater(prev) : null);
+  }, []);
+
   return {
     invoiceData,
     recentInvoices,
@@ -76,6 +80,7 @@ export function useInvoice() {
     fetchInvoice,
     fetchRecentInvoices,
     fetchForPdf,
-    clearInvoice
+    clearInvoice,
+    updateInvoiceData
   };
 }
