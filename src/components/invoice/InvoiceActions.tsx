@@ -21,9 +21,9 @@ export function InvoiceActions({ invoiceData }: InvoiceActionsProps) {
         throw new Error('Invoice preview not found');
       }
 
-      // A4 landscape dimensions in pixels at 96 DPI: 1123 x 794
-      // We'll use a fixed width for consistent rendering
-      const fixedWidth = 1123;
+      // A4 portrait dimensions: 210mm x 297mm
+      // At 96 DPI: 794 x 1123 pixels
+      const fixedWidth = 794;
       
       // Store original styles
       const originalWidth = element.style.width;
@@ -52,13 +52,13 @@ export function InvoiceActions({ invoiceData }: InvoiceActionsProps) {
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
-        orientation: 'landscape',
+        orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
       });
 
-      const pdfWidth = pdf.internal.pageSize.getWidth(); // 297mm for A4 landscape
-      const pdfHeight = pdf.internal.pageSize.getHeight(); // 210mm for A4 landscape
+      const pdfWidth = pdf.internal.pageSize.getWidth(); // 210mm for A4 portrait
+      const pdfHeight = pdf.internal.pageSize.getHeight(); // 297mm for A4 portrait
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
       

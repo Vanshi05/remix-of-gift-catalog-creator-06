@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { InvoiceSearch } from '@/components/invoice/InvoiceSearch';
 import { InvoicePreview } from '@/components/invoice/InvoicePreview';
 import { InvoiceActions } from '@/components/invoice/InvoiceActions';
+import { AddShippingDialog } from '@/components/invoice/AddShippingDialog';
 import { useInvoice } from '@/hooks/useInvoice';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -11,6 +12,7 @@ import { FileText, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { InvoiceLineItem } from '@/types/invoice';
 
 export default function InvoiceGenerator() {
   const [searchParams] = useSearchParams();
@@ -20,7 +22,8 @@ export default function InvoiceGenerator() {
     loading, 
     error, 
     fetchInvoice, 
-    fetchRecentInvoices 
+    fetchRecentInvoices,
+    updateInvoiceData
   } = useInvoice();
 
   useEffect(() => {
@@ -32,6 +35,34 @@ export default function InvoiceGenerator() {
       fetchInvoice(invoiceNumber);
     }
   }, [searchParams, fetchRecentInvoices, fetchInvoice]);
+
+  const handleAddShipping = (shippingItem: InvoiceLineItem) => {
+    updateInvoiceData((prev) => {
+      const newItems = [...prev.items, shippingItem];
+      
+      // Recalculate totals
+      let taxableAmount = 0;
+      let taxAmount = 0;
+
+      newItems.forEach(item => {
+        const itemTotal = (item.pre_tax_price || 0) * (item.qty_sold || 1);
+        taxableAmount += itemTotal;
+        taxAmount += (itemTotal * (item.gst || 0)) / 100;
+      });
+
+      const grandTotal = taxableAmount + taxAmount;
+
+      return {
+        ...prev,
+        items: newItems,
+        totals: {
+          taxableAmount: Math.round(taxableAmount * 100) / 100,
+          taxAmount: Math.round(taxAmount * 100) / 100,
+          grandTotal: Math.round(grandTotal * 100) / 100
+        }
+      };
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -100,9 +131,12 @@ export default function InvoiceGenerator() {
         {invoiceData && !loading && (
           <div className="space-y-6">
             {/* Actions */}
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center flex-wrap gap-4">
               <h2 className="text-xl font-semibold">Invoice Preview</h2>
-              <InvoiceActions invoiceData={invoiceData} />
+              <div className="flex gap-3 flex-wrap">
+                <AddShippingDialog onAddShipping={handleAddShipping} />
+                <InvoiceActions invoiceData={invoiceData} />
+              </div>
             </div>
 
             {/* Preview */}
