@@ -96,11 +96,11 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
 
           {/* Billing Address */}
           <div>
-            <h3 className="font-semibold text-sm uppercase text-gray-600 mb-2">Billing Address:</h3>
-            <div className="space-y-1 text-sm">
-              <p className="whitespace-pre-line text-gray-700"><EditableText>{invoice.billingAddress || "N/A"}</EditableText></p>
-              
-              {invoice.gst && <p className="text-gray-700 mt-3">GST IN: <EditableText>{invoice.gst}</EditableText></p>}
+            <h3 className="font-semibold text-sm uppercase text-gray-600 mb-1">Billing Address:</h3>
+            <p className="whitespace-pre-line text-sm text-gray-700"><EditableText>{invoice.billingAddress || "N/A"}</EditableText></p>
+            
+            <div className="mt-4 space-y-1 text-sm">
+              {invoice.gst && <p className="text-gray-700">GST IN: <EditableText>{invoice.gst}</EditableText></p>}
               <p className="text-gray-700">Contact person: <EditableText>{invoice.contactPerson || "-"}</EditableText></p>
               <p className="text-gray-700">Mobile: <EditableText>{invoice.mobile || "-"}</EditableText></p>
               <p className="text-gray-700">Email: <EditableText>{invoice.email || "-"}</EditableText></p>
