@@ -116,25 +116,35 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
               <TableRow className="bg-gray-100">
                 <TableHead className="w-12 text-center font-semibold text-black">No</TableHead>
                 <TableHead className="font-semibold text-black">Product</TableHead>
-                <TableHead className="text-right font-semibold text-black">Pre GST Price (Rs)</TableHead>
-                <TableHead className="text-center font-semibold text-black">GST %</TableHead>
+                <TableHead className="text-center font-semibold text-black">MRP (Rs)</TableHead>
+                <TableHead className="text-center font-semibold text-black">Pre GST Price (Rs)</TableHead>
                 <TableHead className="text-center font-semibold text-black">Qty</TableHead>
-                <TableHead className="text-right font-semibold text-black">Amount (Rs)</TableHead>
+                <TableHead className="text-center font-semibold text-black">Amount (Rs)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
             {items.map((item, index) => {
                 const gstPercent = item.gst || 0;
                 const preTaxAmount = item.pre_tax_price || 0;
-                const priceWithGst = preTaxAmount + (preTaxAmount * gstPercent / 100);
-                const amount = priceWithGst * (item.qty_sold || 1);
+                const mrp = item.mrp || 0;
+                // Amount = pre_tax_price * (1 + gst/100) * qty (tax-inclusive)
+                const amount = preTaxAmount * (1 + gstPercent / 100) * (item.qty_sold || 1);
                 
-                // Parse gh_config into bullet points if it contains multiple items
-                const configItems = item.gh_config 
-                  ? (typeof item.gh_config === 'string' 
-                      ? item.gh_config.split(/[,\n]/).map(s => s.trim()).filter(Boolean)
-                      : Array.isArray(item.gh_config) ? item.gh_config : [])
-                  : [];
+                // Parse gh_config to extract only item names with quantities
+                // Format: "(1) item-name | pr_xxx | xx (2) item-name | pr_xxx | xx"
+                // We want: "(1) item-name" for each item
+                const parseConfigItems = (config: string | string[] | undefined): string[] => {
+                  if (!config) return [];
+                  const configStr = typeof config === 'string' ? config : config.join(' ');
+                  // Match pattern: (number) item-name (stops before | or next parenthesis)
+                  const matches = configStr.match(/\(\d+\)\s*[^|()]+/g);
+                  if (matches) {
+                    return matches.map(m => m.trim());
+                  }
+                  return [];
+                };
+                
+                const configItems = parseConfigItems(item.gh_config);
                 
                 return (
                   <TableRow key={item.id || index} className="border-b">
@@ -149,10 +159,10 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                         </ul>
                       )}
                     </TableCell>
-                    <TableCell className="text-right align-top"><EditableText>{formatCurrency(preTaxAmount)}</EditableText></TableCell>
-                    <TableCell className="text-center align-top"><EditableText>{gstPercent}%</EditableText></TableCell>
+                    <TableCell className="text-center align-top"><EditableText>{formatCurrency(mrp)}</EditableText></TableCell>
+                    <TableCell className="text-center align-top"><EditableText>{formatCurrency(preTaxAmount)}</EditableText></TableCell>
                     <TableCell className="text-center align-top"><EditableText>{item.qty_sold}</EditableText></TableCell>
-                    <TableCell className="text-right font-medium align-top"><EditableText>{formatCurrency(amount)}</EditableText></TableCell>
+                    <TableCell className="text-center font-medium align-top"><EditableText>{formatCurrency(amount)}</EditableText></TableCell>
                   </TableRow>
                 );
               })}
