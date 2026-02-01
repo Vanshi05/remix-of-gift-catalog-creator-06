@@ -129,9 +129,9 @@ export default async function handler(req, res) {
           }
         }
         if (!mobile) {
-          const mobileMatch = spocDetails.match(/Mobile:\s*([\d\s]+)/i);
+          const mobileMatch = spocDetails.match(/Mobile:\s*([+\d][\d\s-]*)/i);
           if (mobileMatch) {
-            mobile = mobileMatch[1].replace(/\s/g, '').trim();
+            mobile = mobileMatch[1].trim();
           }
         }
         if (!email) {
@@ -151,12 +151,12 @@ export default async function handler(req, res) {
             }
           }
         }
-        // Find mobile - line with 10+ digit number
+        // Find mobile - line with 10+ digit number (may start with +)
         if (!mobile) {
           for (const line of lines) {
-            const phoneMatch = line.match(/(\d[\d\s]{9,})/);
+            const phoneMatch = line.match(/([+]?\d[\d\s-]{9,})/);
             if (phoneMatch) {
-              mobile = phoneMatch[1].replace(/\s/g, '').trim();
+              mobile = phoneMatch[1].trim();
               break;
             }
           }
