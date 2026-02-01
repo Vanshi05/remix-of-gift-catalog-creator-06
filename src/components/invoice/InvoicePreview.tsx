@@ -99,12 +99,11 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
             <h3 className="font-semibold text-sm uppercase text-gray-600 mb-2">Billing Address:</h3>
             <div className="space-y-1 text-sm">
               <p className="whitespace-pre-line text-gray-700"><EditableText>{invoice.billingAddress || "N/A"}</EditableText></p>
-              {invoice.gst && <p className="text-gray-700">GST IN: <EditableText>{invoice.gst}</EditableText></p>}
+              
+              {invoice.gst && <p className="text-gray-700 mt-3">GST IN: <EditableText>{invoice.gst}</EditableText></p>}
               <p className="text-gray-700">Contact person: <EditableText>{invoice.contactPerson || "-"}</EditableText></p>
               <p className="text-gray-700">Mobile: <EditableText>{invoice.mobile || "-"}</EditableText></p>
-              <p className="text-gray-700">
-                Email: <EditableText>{invoice.email || "-"}</EditableText>
-              </p>
+              <p className="text-gray-700">Email: <EditableText>{invoice.email || "-"}</EditableText></p>
             </div>
           </div>
         </div>
@@ -126,9 +125,10 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
             {items.map((item, index) => {
                 const gstPercent = item.gst || 0;
                 const preTaxAmount = item.pre_tax_price || 0;
-                const mrp = item.mrp || 0;
-                // Amount = pre_tax_price * (1 + gst/100) * qty (tax-inclusive)
-                const amount = preTaxAmount * (1 + gstPercent / 100) * (item.qty_sold || 1);
+                // MRP = pre_gst_price * (1 + gst/100)
+                const mrp = preTaxAmount * (1 + gstPercent / 100);
+                // Amount = MRP * qty (tax-inclusive)
+                const amount = mrp * (item.qty_sold || 1);
                 
                 // Parse gh_config to extract only item names with quantities
                 // Format: "(1) item-name | pr_xxx | xx (2) item-name | pr_xxx | xx"

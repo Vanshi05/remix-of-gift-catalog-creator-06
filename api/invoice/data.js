@@ -112,27 +112,63 @@ export default async function handler(req, res) {
 
     // If not found in dedicated fields, parse from SPOC Details
     if (spocDetails && (!contactPerson || !mobile || !email)) {
-      // Extract contact person name (after "Contact person:" and before "Mobile:" or "Email:")
-      if (!contactPerson) {
-        const contactMatch = spocDetails.match(/Contact\s*person:\s*([^ME]+?)(?:\s*(?:Mobile|Email):|$)/i);
-        if (contactMatch) {
-          contactPerson = contactMatch[1].trim();
-        }
-      }
+      // Split by newlines to handle both formats
+      const lines = spocDetails.split(/\n/).map(l => l.trim()).filter(Boolean);
       
-      // Extract mobile number - look for any 10+ digit number
-      if (!mobile) {
-        const mobileMatch = spocDetails.match(/Mobile:\s*(\d+)/i) || spocDetails.match(/(\d{10,})/);
-        if (mobileMatch) {
-          mobile = mobileMatch[1].trim();
-        }
-      }
+      // Check if it's labeled format (has "Contact person:", "Mobile:", "Email:")
+      const hasLabels = spocDetails.toLowerCase().includes("contact person:") || 
+                        spocDetails.toLowerCase().includes("mobile:") || 
+                        spocDetails.toLowerCase().includes("email:");
       
-      // Extract email - look for email pattern
-      if (!email) {
-        const emailMatch = spocDetails.match(/Email:\s*([^\s]+@[^\s]+)/i) || spocDetails.match(/([^\s]+@[^\s]+\.[^\s]+)/i);
-        if (emailMatch) {
-          email = emailMatch[1].trim();
+      if (hasLabels) {
+        // Format 1: Labeled format
+        if (!contactPerson) {
+          const contactMatch = spocDetails.match(/Contact\s*person:\s*(.+?)(?=\s*(?:Mobile|Email|$))/is);
+          if (contactMatch) {
+            contactPerson = contactMatch[1].trim();
+          }
+        }
+        if (!mobile) {
+          const mobileMatch = spocDetails.match(/Mobile:\s*([\d\s]+)/i);
+          if (mobileMatch) {
+            mobile = mobileMatch[1].replace(/\s/g, '').trim();
+          }
+        }
+        if (!email) {
+          const emailMatch = spocDetails.match(/Email:\s*([^\s]+@[^\s]+)/i);
+          if (emailMatch) {
+            email = emailMatch[1].trim();
+          }
+        }
+      } else {
+        // Format 2: Simple format (Name, Company, Phone, Email on separate lines)
+        // Find name - first line that's not a number or email
+        if (!contactPerson) {
+          for (const line of lines) {
+            if (!line.match(/^\d/) && !line.includes('@')) {
+              contactPerson = line;
+              break;
+            }
+          }
+        }
+        // Find mobile - line with 10+ digit number
+        if (!mobile) {
+          for (const line of lines) {
+            const phoneMatch = line.match(/(\d[\d\s]{9,})/);
+            if (phoneMatch) {
+              mobile = phoneMatch[1].replace(/\s/g, '').trim();
+              break;
+            }
+          }
+        }
+        // Find email - line with @ symbol
+        if (!email) {
+          for (const line of lines) {
+            if (line.includes('@')) {
+              email = line.trim();
+              break;
+            }
+          }
         }
       }
     }
