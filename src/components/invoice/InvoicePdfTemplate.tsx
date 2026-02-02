@@ -144,7 +144,8 @@ const styles = StyleSheet.create({
   },
   termText: {
     color: '#374151',
-    lineHeight: 1.4,
+    // Tighter leading to avoid the "too spaced out" look in PDF
+    lineHeight: 1.25,
   },
   // Bank details
   bankBox: {
@@ -165,11 +166,15 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontSize: 9,
   },
-  configItem: {
-    marginLeft: 10,
-    marginTop: 2,
+  configList: {
+    marginTop: 4,
+    marginLeft: 12,
+  },
+  configLine: {
     fontSize: 8,
     color: '#4b5563',
+    lineHeight: 1.25,
+    marginBottom: 2,
   },
 });
 
@@ -218,18 +223,6 @@ export const InvoicePdfTemplate = ({ data }: InvoicePdfTemplateProps) => {
     "50% advance payment at the time of order confirmation.",
     "50% balance payment before dispatch"
   ];
-
-  // Build seller text as single block
-  const sellerText = `${seller.name}\n${seller.address}\nGST # : ${seller.gst}`;
-
-  // Build billing text as single block
-  const billingLines = [
-    invoice.billingAddress || "N/A",
-    invoice.gst ? `\nGST IN: ${invoice.gst}` : '',
-    `Contact person: ${invoice.contactPerson || "-"}`,
-    `Mobile: ${invoice.mobile || "-"}`,
-    `Email: ${invoice.email || "-"}`
-  ].filter(Boolean).join('\n');
 
   // Build terms as bullet list in single block
   const termsText = terms.map(t => `• ${t}`).join('\n');
@@ -302,9 +295,13 @@ export const InvoicePdfTemplate = ({ data }: InvoicePdfTemplateProps) => {
                 <View style={styles.colProduct}>
                   <Text style={[styles.tableCell, styles.bold]}>{item.gift_hamper_name}</Text>
                   {configItems.length > 0 && (
-                    <Text style={styles.configItem}>
-                      {configItems.map((c, i) => `• ${c}`).join('\n')}
-                    </Text>
+                    <View style={styles.configList}>
+                      {configItems.map((c, idx) => (
+                        <Text key={idx} style={styles.configLine}>
+                          • {c}
+                        </Text>
+                      ))}
+                    </View>
                   )}
                 </View>
                 <Text style={[styles.tableCell, styles.colMrp]}>{formatCurrency(mrp)}</Text>
