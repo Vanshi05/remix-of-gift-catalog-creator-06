@@ -54,20 +54,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textTransform: 'uppercase',
     color: '#4b5563',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   bold: {
     fontWeight: 'bold',
   },
-  text: {
-    marginBottom: 0,
+  textBlock: {
     color: '#374151',
-    lineHeight: 1.3,
-  },
-  bankText: {
-    marginBottom: 0,
-    color: '#374151',
-    lineHeight: 1.5,
+    lineHeight: 1.4,
   },
   // Table styles
   table: {
@@ -124,7 +118,7 @@ const styles = StyleSheet.create({
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   totalLabel: {
     color: '#6b7280',
@@ -148,10 +142,9 @@ const styles = StyleSheet.create({
   termsSection: {
     marginBottom: 8,
   },
-  termItem: {
-    marginBottom: 0,
+  termText: {
     color: '#374151',
-    lineHeight: 1.3,
+    lineHeight: 1.4,
   },
   // Bank details
   bankBox: {
@@ -226,14 +219,35 @@ export const InvoicePdfTemplate = ({ data }: InvoicePdfTemplateProps) => {
     "50% balance payment before dispatch"
   ];
 
+  // Build seller text as single block
+  const sellerText = `${seller.name}\n${seller.address}\nGST # : ${seller.gst}`;
+
+  // Build billing text as single block
+  const billingLines = [
+    invoice.billingAddress || "N/A",
+    invoice.gst ? `\nGST IN: ${invoice.gst}` : '',
+    `Contact person: ${invoice.contactPerson || "-"}`,
+    `Mobile: ${invoice.mobile || "-"}`,
+    `Email: ${invoice.email || "-"}`
+  ].filter(Boolean).join('\n');
+
+  // Build terms as bullet list in single block
+  const termsText = terms.map(t => `• ${t}`).join('\n');
+  const paymentTermsText = paymentTerms.map(t => `• ${t}`).join('\n');
+
+  // Build bank details as single block
+  const bankText = `Account Name: LOOPIFY WORLD PVT LTD\nBank Name: ${bankDetails.bankName}\nBank Account number: ${bankDetails.accountNumber}\nIFSC Code: ${bankDetails.ifsc}\nBranch: ${bankDetails.branch}`;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.text}><Text style={styles.bold}>Invoice Number:</Text> {invoice.invoiceNumber}</Text>
-            <Text style={styles.text}><Text style={styles.bold}>Invoice Date:</Text> {invoice.invoiceDate}</Text>
+            <Text style={styles.textBlock}>
+              <Text style={styles.bold}>Invoice Number:</Text> {invoice.invoiceNumber}{'\n'}
+              <Text style={styles.bold}>Invoice Date:</Text> {invoice.invoiceDate}
+            </Text>
           </View>
           <Image src={loopifyLogo} style={styles.logo} />
         </View>
@@ -246,17 +260,21 @@ export const InvoicePdfTemplate = ({ data }: InvoicePdfTemplateProps) => {
         <View style={styles.row}>
           <View style={styles.column}>
             <Text style={styles.sectionTitle}>Seller:</Text>
-            <Text style={[styles.text, styles.bold]}>{seller.name}</Text>
-            <Text style={styles.text}>{seller.address}</Text>
-            <Text style={styles.text}>GST # : {seller.gst}</Text>
+            <Text style={styles.textBlock}>
+              <Text style={styles.bold}>{seller.name}</Text>{'\n'}
+              {seller.address}{'\n'}
+              GST # : {seller.gst}
+            </Text>
           </View>
           <View style={styles.column}>
             <Text style={styles.sectionTitle}>Billing Address:</Text>
-            <Text style={styles.text}>{invoice.billingAddress || "N/A"}</Text>
-            {invoice.gst && <Text style={[styles.text, { marginTop: 8 }]}>GST IN: {invoice.gst}</Text>}
-            <Text style={styles.text}>Contact person: {invoice.contactPerson || "-"}</Text>
-            <Text style={styles.text}>Mobile: {invoice.mobile || "-"}</Text>
-            <Text style={styles.text}>Email: {invoice.email || "-"}</Text>
+            <Text style={styles.textBlock}>
+              {invoice.billingAddress || "N/A"}
+              {invoice.gst ? `\n\nGST IN: ${invoice.gst}` : ''}
+              {'\n'}Contact person: {invoice.contactPerson || "-"}
+              {'\n'}Mobile: {invoice.mobile || "-"}
+              {'\n'}Email: {invoice.email || "-"}
+            </Text>
           </View>
         </View>
 
@@ -283,9 +301,11 @@ export const InvoicePdfTemplate = ({ data }: InvoicePdfTemplateProps) => {
                 <Text style={[styles.tableCell, styles.colNo]}>{index + 1}</Text>
                 <View style={styles.colProduct}>
                   <Text style={[styles.tableCell, styles.bold]}>{item.gift_hamper_name}</Text>
-                  {configItems.map((configItem, idx) => (
-                    <Text key={idx} style={styles.configItem}>• {configItem}</Text>
-                  ))}
+                  {configItems.length > 0 && (
+                    <Text style={styles.configItem}>
+                      {configItems.map((c, i) => `• ${c}`).join('\n')}
+                    </Text>
+                  )}
                 </View>
                 <Text style={[styles.tableCell, styles.colMrp]}>{formatCurrency(mrp)}</Text>
                 <Text style={[styles.tableCell, styles.colPreGst]}>{formatCurrency(preTaxAmount)}</Text>
@@ -319,27 +339,19 @@ export const InvoicePdfTemplate = ({ data }: InvoicePdfTemplateProps) => {
         {/* Terms */}
         <View style={styles.termsSection}>
           <Text style={styles.sectionTitle}>TERMS:</Text>
-          {terms.map((term, index) => (
-            <Text key={index} style={styles.termItem}>{term}</Text>
-          ))}
+          <Text style={styles.termText}>{termsText}</Text>
         </View>
 
         {/* Payment Terms */}
         <View style={styles.termsSection}>
           <Text style={styles.sectionTitle}>PAYMENT TERMS:</Text>
-          {paymentTerms.map((term, index) => (
-            <Text key={index} style={styles.termItem}>{term}</Text>
-          ))}
+          <Text style={styles.termText}>{paymentTermsText}</Text>
         </View>
 
         {/* Bank Details */}
         <View style={styles.bankBox}>
           <Text style={styles.sectionTitle}>BANK DETAILS:</Text>
-          <Text style={styles.bankText}><Text style={styles.bold}>Account Name:</Text> LOOPIFY WORLD PVT LTD</Text>
-          <Text style={styles.bankText}><Text style={styles.bold}>Bank Name:</Text> {bankDetails.bankName}</Text>
-          <Text style={styles.bankText}><Text style={styles.bold}>Bank Account number:</Text> {bankDetails.accountNumber}</Text>
-          <Text style={styles.bankText}><Text style={styles.bold}>IFSC Code:</Text> {bankDetails.ifsc}</Text>
-          <Text style={styles.bankText}><Text style={styles.bold}>Branch:</Text> {bankDetails.branch}</Text>
+          <Text style={styles.textBlock}>{bankText}</Text>
         </View>
 
         {/* Footer */}
