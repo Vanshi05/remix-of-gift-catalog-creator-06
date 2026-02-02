@@ -144,9 +144,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   termItem: {
-    marginBottom: 4,
+    marginBottom: 1,
     color: '#374151',
-    lineHeight: 1.5,
+    lineHeight: 1.4,
   },
   // Bank details
   bankBox: {
