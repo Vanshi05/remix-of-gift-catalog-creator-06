@@ -60,9 +60,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   text: {
-    marginBottom: 2,
+    marginBottom: 0,
     color: '#374151',
-    lineHeight: 1.4,
+    lineHeight: 1.3,
+  },
+  bankText: {
+    marginBottom: 0,
+    color: '#374151',
+    lineHeight: 1.5,
   },
   // Table styles
   table: {
@@ -141,12 +146,12 @@ const styles = StyleSheet.create({
   },
   // Terms
   termsSection: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   termItem: {
-    marginBottom: 1,
+    marginBottom: 0,
     color: '#374151',
-    lineHeight: 1.4,
+    lineHeight: 1.3,
   },
   // Bank details
   bankBox: {
@@ -315,7 +320,7 @@ export const InvoicePdfTemplate = ({ data }: InvoicePdfTemplateProps) => {
         <View style={styles.termsSection}>
           <Text style={styles.sectionTitle}>TERMS:</Text>
           {terms.map((term, index) => (
-            <Text key={index} style={styles.termItem}>• {term}</Text>
+            <Text key={index} style={styles.termItem}>{term}</Text>
           ))}
         </View>
 
@@ -323,18 +328,18 @@ export const InvoicePdfTemplate = ({ data }: InvoicePdfTemplateProps) => {
         <View style={styles.termsSection}>
           <Text style={styles.sectionTitle}>PAYMENT TERMS:</Text>
           {paymentTerms.map((term, index) => (
-            <Text key={index} style={styles.termItem}>• {term}</Text>
+            <Text key={index} style={styles.termItem}>{term}</Text>
           ))}
         </View>
 
         {/* Bank Details */}
         <View style={styles.bankBox}>
           <Text style={styles.sectionTitle}>BANK DETAILS:</Text>
-          <Text style={styles.text}><Text style={styles.bold}>Account Name:</Text> LOOPIFY WORLD PVT LTD</Text>
-          <Text style={styles.text}><Text style={styles.bold}>Bank Name:</Text> {bankDetails.bankName}</Text>
-          <Text style={styles.text}><Text style={styles.bold}>Bank Account number:</Text> {bankDetails.accountNumber}</Text>
-          <Text style={styles.text}><Text style={styles.bold}>IFSC Code:</Text> {bankDetails.ifsc}</Text>
-          <Text style={styles.text}><Text style={styles.bold}>Branch:</Text> {bankDetails.branch}</Text>
+          <Text style={styles.bankText}><Text style={styles.bold}>Account Name:</Text> LOOPIFY WORLD PVT LTD</Text>
+          <Text style={styles.bankText}><Text style={styles.bold}>Bank Name:</Text> {bankDetails.bankName}</Text>
+          <Text style={styles.bankText}><Text style={styles.bold}>Bank Account number:</Text> {bankDetails.accountNumber}</Text>
+          <Text style={styles.bankText}><Text style={styles.bold}>IFSC Code:</Text> {bankDetails.ifsc}</Text>
+          <Text style={styles.bankText}><Text style={styles.bold}>Branch:</Text> {bankDetails.branch}</Text>
         </View>
 
         {/* Footer */}
