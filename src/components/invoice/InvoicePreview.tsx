@@ -59,17 +59,17 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
       <Card ref={ref} className="p-8 bg-white text-black print:shadow-none" id="invoice-preview">
         {/* Editable hint */}
         <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 print:hidden">
-          💡 Click on any text to edit it directly. Changes will be reflected in the PDF.
+          💡 Click on billing address or contact details to edit. Changes will be reflected in the PDF.
         </div>
         
         {/* Header with Logo and Invoice Info */}
         <div className="flex justify-between items-start mb-6">
           <div className="space-y-1">
             <p className="text-sm">
-              <span className="font-semibold">Invoice Number:</span> <EditableText>{invoice.invoiceNumber}</EditableText>
+              <span className="font-semibold">Invoice Number:</span> {invoice.invoiceNumber}
             </p>
             <p className="text-sm">
-              <span className="font-semibold">Invoice Date:</span> <EditableText>{invoice.invoiceDate}</EditableText>
+              <span className="font-semibold">Invoice Date:</span> {invoice.invoiceDate}
             </p>
           </div>
           <img src={loopifyLogo} alt="Loopify Logo" className="h-16 object-contain" />
@@ -88,9 +88,9 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
           <div>
             <h3 className="font-semibold text-sm uppercase text-gray-600 mb-2">Seller:</h3>
             <div className="space-y-1 text-sm">
-              <p className="font-bold"><EditableText>{defaultSeller.name}</EditableText></p>
-              <p className="whitespace-pre-line text-gray-700"><EditableText>{defaultSeller.address}</EditableText></p>
-              <p className="text-gray-700">GST # : <EditableText>{defaultSeller.gst}</EditableText></p>
+              <p className="font-bold">{defaultSeller.name}</p>
+              <p className="whitespace-pre-line text-gray-700">{defaultSeller.address}</p>
+              <p className="text-gray-700">GST # : {defaultSeller.gst}</p>
             </div>
           </div>
 
@@ -150,19 +150,19 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                   <TableRow key={item.id || index} className="border-b">
                     <TableCell className="text-center align-top">{index + 1}</TableCell>
                     <TableCell className="align-top">
-                      <div className="font-bold"><EditableText>{item.gift_hamper_name}</EditableText></div>
+                      <div className="font-bold">{item.gift_hamper_name}</div>
                       {configItems.length > 0 && (
                         <ul className="mt-2 ml-4 list-disc text-sm text-gray-700 space-y-1">
                           {configItems.map((configItem, idx) => (
-                            <li key={idx}><EditableText>{configItem}</EditableText></li>
+                            <li key={idx}>{configItem}</li>
                           ))}
                         </ul>
                       )}
                     </TableCell>
-                    <TableCell className="text-center align-top"><EditableText>{formatCurrency(mrp)}</EditableText></TableCell>
-                    <TableCell className="text-center align-top"><EditableText>{formatCurrency(preTaxAmount)}</EditableText></TableCell>
-                    <TableCell className="text-center align-top"><EditableText>{item.qty_sold}</EditableText></TableCell>
-                    <TableCell className="text-center font-medium align-top"><EditableText>{formatCurrency(amount)}</EditableText></TableCell>
+                    <TableCell className="text-center align-top">{formatCurrency(mrp)}</TableCell>
+                    <TableCell className="text-center align-top">{formatCurrency(preTaxAmount)}</TableCell>
+                    <TableCell className="text-center align-top">{item.qty_sold}</TableCell>
+                    <TableCell className="text-center font-medium align-top">{formatCurrency(amount)}</TableCell>
                   </TableRow>
                 );
               })}
