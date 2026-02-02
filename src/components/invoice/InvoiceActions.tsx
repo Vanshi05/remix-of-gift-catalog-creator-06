@@ -73,12 +73,19 @@ export function InvoiceActions({ invoiceData }: InvoiceActionsProps) {
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
       
-      // Scale to full page width with minimal margins
-      const margin = 5;
+      // Scale to fit content within page with appropriate margins
+      const margin = 8;
       const availableWidth = pdfWidth - (margin * 2);
-      const ratio = availableWidth / imgWidth;
+      const availableHeight = pdfHeight - (margin * 2);
       
-      const imgX = margin;
+      // Calculate ratio to fit content - use the smaller ratio to ensure all content fits
+      const widthRatio = availableWidth / imgWidth;
+      const heightRatio = availableHeight / imgHeight;
+      const ratio = Math.min(widthRatio, heightRatio);
+      
+      // Center horizontally if there's extra space
+      const scaledWidth = imgWidth * ratio;
+      const imgX = (pdfWidth - scaledWidth) / 2;
       const imgY = margin;
 
       pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
