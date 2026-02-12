@@ -1,21 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
+import { toast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   CalendarIcon,
-  ChevronDown,
   FileText,
   Save,
   Send,
@@ -28,18 +28,10 @@ import {
   Package,
   Zap,
   Star,
+  Crown,
 } from "lucide-react";
 
-// ── Mock Data ────────────────────────────────────────────────────────
-const CATEGORIES = [
-  "Chocolates & Sweets",
-  "Dry Fruits & Nuts",
-  "Wellness & Self-Care",
-  "Stationery & Desk",
-  "Beverages",
-  "Eco-Friendly",
-];
-
+// ── Types ────────────────────────────────────────────────────────────
 interface HamperItem {
   name: string;
   qty: number;
@@ -56,9 +48,22 @@ interface HamperCard {
   badges: ("LOW STOCK" | "FAST DELIVERY" | "PREMIUM")[];
   items: HamperItem[];
   gstPercent: number;
+  recommended?: boolean;
 }
 
-const MOCK_HAMPERS: HamperCard[] = [
+// ── Mock Data ────────────────────────────────────────────────────────
+const CATEGORIES = [
+  "Chocolates & Sweets",
+  "Dry Fruits & Nuts",
+  "Wellness & Self-Care",
+  "Stationery & Desk",
+  "Beverages",
+  "Eco-Friendly",
+];
+
+const BUDGET_PRESETS = [1000, 1500, 2000, 3000];
+
+const ALL_HAMPERS: HamperCard[] = [
   {
     id: "h1",
     name: "Classic Delight Hamper",
@@ -75,6 +80,7 @@ const MOCK_HAMPERS: HamperCard[] = [
       { name: "Green Tea Tin", qty: 1, unitPrice: 180 },
     ],
     gstPercent: 18,
+    recommended: true,
   },
   {
     id: "h2",
@@ -109,9 +115,6 @@ const MOCK_HAMPERS: HamperCard[] = [
     ],
     gstPercent: 12,
   },
-];
-
-const BACKUP_HAMPERS: HamperCard[] = [
   {
     id: "b1",
     name: "Budget Friendly Pack",
@@ -146,7 +149,7 @@ const BACKUP_HAMPERS: HamperCard[] = [
   },
 ];
 
-// ── Badge colour helper ──────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────
 const badgeStyle = (label: string) => {
   switch (label) {
     case "LOW STOCK":
@@ -173,12 +176,11 @@ const badgeIcon = (label: string) => {
   }
 };
 
-// ── Feasibility helper ───────────────────────────────────────────────
 type Feasibility = "green" | "yellow" | "red";
-const feasibilityMeta: Record<Feasibility, { label: string; icon: React.ReactNode; color: string }> = {
-  green: { label: "Deliverable", icon: <CheckCircle2 className="h-4 w-4" />, color: "text-[hsl(var(--eco-green))]" },
-  yellow: { label: "Risk", icon: <AlertTriangle className="h-4 w-4" />, color: "text-accent" },
-  red: { label: "Not Possible", icon: <XCircle className="h-4 w-4" />, color: "text-destructive" },
+const feasibilityMeta: Record<Feasibility, { label: string; icon: React.ReactNode; color: string; bg: string }> = {
+  green: { label: "Deliverable", icon: <CheckCircle2 className="h-4 w-4" />, color: "text-[hsl(var(--eco-green))]", bg: "bg-[hsl(var(--eco-green)/0.1)]" },
+  yellow: { label: "Risk", icon: <AlertTriangle className="h-4 w-4" />, color: "text-accent", bg: "bg-accent/10" },
+  red: { label: "Not Possible", icon: <XCircle className="h-4 w-4" />, color: "text-destructive", bg: "bg-destructive/10" },
 };
 
 const getFeasibility = (hamper: HamperCard): Feasibility => {
@@ -187,41 +189,62 @@ const getFeasibility = (hamper: HamperCard): Feasibility => {
   return "green";
 };
 
-// ═════════════════════════════════════════════════════════════════════
-// Component
+const fmt = (n: number) => `₹${n.toLocaleString("en-IN")}`;
+
 // ═════════════════════════════════════════════════════════════════════
 const HamperDesigner = () => {
   // Filters
-  const [budget, setBudget] = useState("");
+  const [budget, setBudget] = useState(3000);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState<Date | undefined>();
 
-  // Selection
-  const [selectedHamper, setSelectedHamper] = useState<HamperCard | null>(null);
-  const [backupsOpen, setBackupsOpen] = useState(false);
-
-  // Editable quantities (keyed by item name)
+  // Selection — auto-select first
+  const [selectedHamper, setSelectedHamper] = useState<HamperCard>(ALL_HAMPERS[0]);
   const [qtyOverrides, setQtyOverrides] = useState<Record<string, number>>({});
+  const [focusedIndex, setFocusedIndex] = useState(0);
 
-  const handleSelectHamper = (h: HamperCard) => {
+  // Init qty overrides for first hamper
+  useEffect(() => {
+    const defaults: Record<string, number> = {};
+    ALL_HAMPERS[0].items.forEach((i) => (defaults[i.name] = i.qty));
+    setQtyOverrides(defaults);
+  }, []);
+
+  const handleSelectHamper = useCallback((h: HamperCard, idx: number) => {
     setSelectedHamper(h);
-    // Reset qty overrides to the hamper defaults
+    setFocusedIndex(idx);
     const defaults: Record<string, number> = {};
     h.items.forEach((i) => (defaults[i.name] = i.qty));
     setQtyOverrides(defaults);
-  };
+  }, []);
+
+  // Keyboard nav
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+        e.preventDefault();
+        const next = Math.min(focusedIndex + 1, ALL_HAMPERS.length - 1);
+        handleSelectHamper(ALL_HAMPERS[next], next);
+      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        const prev = Math.max(focusedIndex - 1, 0);
+        handleSelectHamper(ALL_HAMPERS[prev], prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [focusedIndex, handleSelectHamper]);
 
   const adjustQty = (itemName: string, delta: number) => {
-    setQtyOverrides((prev) => {
-      const cur = prev[itemName] ?? 1;
-      return { ...prev, [itemName]: Math.max(1, cur + delta) };
-    });
+    setQtyOverrides((prev) => ({
+      ...prev,
+      [itemName]: Math.max(1, (prev[itemName] ?? 1) + delta),
+    }));
   };
 
-  // Pricing for selected hamper
+  // Pricing
   const computePricing = () => {
-    if (!selectedHamper) return { taxable: 0, tax: 0, grand: 0 };
     let taxable = 0;
     selectedHamper.items.forEach((i) => {
       const qty = qtyOverrides[i.name] ?? i.qty;
@@ -230,9 +253,8 @@ const HamperDesigner = () => {
     const tax = Math.round(taxable * (selectedHamper.gstPercent / 100));
     return { taxable, tax, grand: taxable + tax };
   };
-
   const pricing = computePricing();
-  const feasibility = selectedHamper ? getFeasibility(selectedHamper) : null;
+  const feasibility = getFeasibility(selectedHamper);
 
   const toggleCategory = (cat: string) => {
     setSelectedCategories((prev) =>
@@ -240,55 +262,95 @@ const HamperDesigner = () => {
     );
   };
 
-  const fmt = (n: number) => `₹${n.toLocaleString("en-IN")}`;
+  // Delivery urgency
+  const getDeadlineUrgency = () => {
+    if (!deliveryDate) return null;
+    const days = differenceInDays(deliveryDate, new Date());
+    if (days <= 2) return "text-destructive";
+    if (days <= 5) return "text-accent";
+    return "text-[hsl(var(--eco-green))]";
+  };
 
-  // ── Render ──────────────────────────────────────────────────────────
+  const handleAction = (action: string) => {
+    toast({ title: action, description: `${selectedHamper.name} — ${fmt(pricing.grand)}` });
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b border-border/50 bg-card shadow-sm sticky top-0 z-50">
-        <div className="max-w-[1800px] mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-[1920px] mx-auto px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
             <div>
-              <h1 className="text-xl font-bold text-primary">Hamper Designer</h1>
-              <p className="text-xs text-muted-foreground">Build &amp; preview gift hamper combos</p>
+              <h1 className="text-base font-bold text-primary leading-tight">Hamper Designer</h1>
+              <p className="text-[11px] text-muted-foreground">Staff quotation workstation</p>
             </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px]">↑↓</kbd>
+            <span>Navigate hampers</span>
           </div>
         </div>
       </header>
 
       {/* 3-column grid */}
-      <main className="max-w-[1800px] mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_340px] gap-6">
+      <main className="flex-1 max-w-[1920px] mx-auto px-3 py-3 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr_320px] gap-3 h-[calc(100vh-56px)]">
+
           {/* ───── LEFT: Filters ───── */}
-          <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+          <aside className="space-y-3 lg:overflow-y-auto lg:pr-1">
             <Card>
-              <CardContent className="p-4 space-y-5">
-                {/* Budget */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Budget (₹)</Label>
-                  <Input
-                    type="number"
-                    placeholder="e.g. 2000"
-                    value={budget}
-                    onChange={(e) => setBudget(e.target.value)}
-                  />
+              <CardContent className="p-3 space-y-4">
+                {/* Budget slider + input */}
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Budget (₹)</Label>
+                  <div className="flex items-center gap-2">
+                    <Slider
+                      value={[budget]}
+                      onValueChange={([v]) => setBudget(v)}
+                      min={500}
+                      max={5000}
+                      step={100}
+                      className="flex-1"
+                    />
+                    <Input
+                      type="number"
+                      value={budget}
+                      onChange={(e) => setBudget(Number(e.target.value) || 500)}
+                      className="w-20 h-7 text-xs text-center"
+                    />
+                  </div>
+                  {/* Quick presets */}
+                  <div className="flex gap-1.5 flex-wrap">
+                    {BUDGET_PRESETS.map((p) => (
+                      <Button
+                        key={p}
+                        variant={budget === p ? "default" : "outline"}
+                        size="sm"
+                        className="h-6 text-[10px] px-2"
+                        onClick={() => setBudget(p)}
+                      >
+                        {fmt(p)}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Categories */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Categories</Label>
-                  <div className="space-y-1.5">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Categories</Label>
+                  <div className="space-y-1">
                     {CATEGORIES.map((cat) => (
-                      <label key={cat} className="flex items-center gap-2 cursor-pointer text-sm">
+                      <label key={cat} className="flex items-center gap-2 cursor-pointer text-xs">
                         <Checkbox
                           checked={selectedCategories.includes(cat)}
                           onCheckedChange={() => toggleCategory(cat)}
+                          className="h-3.5 w-3.5"
                         />
                         {cat}
                       </label>
@@ -298,21 +360,25 @@ const HamperDesigner = () => {
 
                 {/* In-stock toggle */}
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm">Show only in-stock</Label>
+                  <Label className="text-xs">In-stock only</Label>
                   <Switch checked={inStockOnly} onCheckedChange={setInStockOnly} />
                 </div>
 
                 {/* Delivery deadline */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Delivery Deadline</Label>
+                  <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Deadline</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className={cn("w-full justify-start text-left font-normal", !deliveryDate && "text-muted-foreground")}
+                        className={cn(
+                          "w-full justify-start text-left font-normal h-8 text-xs",
+                          !deliveryDate && "text-muted-foreground",
+                          getDeadlineUrgency()
+                        )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {deliveryDate ? format(deliveryDate, "PPP") : "Pick a date"}
+                        <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+                        {deliveryDate ? format(deliveryDate, "dd MMM yyyy") : "Pick date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -321,188 +387,161 @@ const HamperDesigner = () => {
                         selected={deliveryDate}
                         onSelect={setDeliveryDate}
                         initialFocus
-                        className="p-3 pointer-events-auto"
+                        className="p-2 pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
+                  {deliveryDate && (
+                    <p className={cn("text-[10px] font-medium", getDeadlineUrgency())}>
+                      {differenceInDays(deliveryDate, new Date())} days remaining
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </aside>
 
-          {/* ───── CENTER: Hamper Suggestions ───── */}
-          <section className="space-y-4">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Suggestions</h2>
-
-            {/* Main 3 cards */}
-            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {MOCK_HAMPERS.map((h) => (
-                <Card
-                  key={h.id}
-                  onClick={() => handleSelectHamper(h)}
-                  className={cn(
-                    "cursor-pointer transition-all hover:shadow-md overflow-hidden",
-                    selectedHamper?.id === h.id && "ring-2 ring-primary shadow-lg"
-                  )}
-                >
-                  <img src={h.image} alt={h.name} className="w-full h-40 object-cover" />
-                  <CardContent className="p-3 space-y-2">
-                    <p className="font-bold text-sm leading-tight">{h.heroProduct}</p>
-                    <div className="text-xs text-muted-foreground space-y-0.5">
-                      {h.sideItems.map((s) => (
-                        <p key={s}>• {s}</p>
-                      ))}
-                    </div>
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="font-semibold text-primary">{fmt(h.totalPrice)}</span>
-                      <div className="flex gap-1 flex-wrap justify-end">
-                        {h.badges.map((b) => (
-                          <Badge key={b} variant="outline" className={cn("text-[10px] px-1.5 py-0 gap-0.5", badgeStyle(b))}>
-                            {badgeIcon(b)} {b}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+          {/* ───── CENTER: Hamper List ───── */}
+          <section className="lg:overflow-y-auto lg:pr-1 space-y-1.5">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {ALL_HAMPERS.length} Hampers
+              </p>
             </div>
 
-            {/* Backup hampers – collapsible */}
-            <Collapsible open={backupsOpen} onOpenChange={setBackupsOpen}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between text-muted-foreground text-sm">
-                  Backup Options ({BACKUP_HAMPERS.length})
-                  <ChevronDown className={cn("h-4 w-4 transition-transform", backupsOpen && "rotate-180")} />
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-2">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {BACKUP_HAMPERS.map((h) => (
-                    <Card
-                      key={h.id}
-                      onClick={() => handleSelectHamper(h)}
-                      className={cn(
-                        "cursor-pointer transition-all hover:shadow-md overflow-hidden",
-                        selectedHamper?.id === h.id && "ring-2 ring-primary shadow-lg"
-                      )}
-                    >
-                      <img src={h.image} alt={h.name} className="w-full h-32 object-cover" />
-                      <CardContent className="p-3 space-y-2">
-                        <p className="font-bold text-sm leading-tight">{h.heroProduct}</p>
-                        <div className="text-xs text-muted-foreground space-y-0.5">
-                          {h.sideItems.map((s) => (
-                            <p key={s}>• {s}</p>
+            {ALL_HAMPERS.map((h, idx) => (
+              <Card
+                key={h.id}
+                onClick={() => handleSelectHamper(h, idx)}
+                className={cn(
+                  "cursor-pointer transition-all duration-150 overflow-hidden",
+                  "hover:bg-muted/40",
+                  selectedHamper.id === h.id
+                    ? "ring-2 ring-primary bg-primary/[0.03] shadow-sm"
+                    : "hover:shadow-sm",
+                  focusedIndex === idx && selectedHamper.id !== h.id && "ring-1 ring-border"
+                )}
+              >
+                <CardContent className="p-0">
+                  <div className="flex items-center gap-3">
+                    {/* Compact thumbnail */}
+                    <img
+                      src={h.image}
+                      alt={h.name}
+                      className="w-20 h-16 object-cover rounded-l-md flex-shrink-0"
+                    />
+                    {/* Info */}
+                    <div className="flex-1 py-2 pr-3 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <p className="font-semibold text-sm truncate">{h.heroProduct}</p>
+                        {h.recommended && (
+                          <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px] px-1 py-0 gap-0.5 flex-shrink-0">
+                            <Crown className="h-2.5 w-2.5" /> RECOMMENDED
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {h.sideItems.join(" · ")}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="font-bold text-sm text-primary">{fmt(h.totalPrice)}</span>
+                        <div className="flex gap-1 flex-wrap">
+                          {h.badges.map((b) => (
+                            <Badge
+                              key={b}
+                              variant="outline"
+                              className={cn("text-[9px] px-1 py-0 gap-0.5 h-4", badgeStyle(b))}
+                            >
+                              {badgeIcon(b)} {b}
+                            </Badge>
                           ))}
                         </div>
-                        <div className="flex items-center justify-between pt-1">
-                          <span className="font-semibold text-primary">{fmt(h.totalPrice)}</span>
-                          <div className="flex gap-1 flex-wrap justify-end">
-                            {h.badges.map((b) => (
-                              <Badge key={b} variant="outline" className={cn("text-[10px] px-1.5 py-0 gap-0.5", badgeStyle(b))}>
-                                {badgeIcon(b)} {b}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </section>
 
           {/* ───── RIGHT: Live Preview & Summary ───── */}
-          <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-            {selectedHamper ? (
-              <>
-                {/* Large preview image */}
-                <Card className="overflow-hidden">
-                  <img src={selectedHamper.image} alt={selectedHamper.name} className="w-full h-48 object-cover" />
-                  <CardContent className="p-3">
-                    <p className="font-bold text-base">{selectedHamper.name}</p>
-                  </CardContent>
-                </Card>
-
-                {/* Editable items */}
-                <Card>
-                  <CardContent className="p-3 space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Items</p>
-                    {selectedHamper.items.map((item) => {
-                      const qty = qtyOverrides[item.name] ?? item.qty;
-                      return (
-                        <div key={item.name} className="flex items-center justify-between text-sm gap-2">
-                          <span className="flex-1 truncate">{item.name}</span>
-                          <div className="flex items-center gap-1">
-                            <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => adjustQty(item.name, -1)}>
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="w-6 text-center text-xs font-medium">{qty}</span>
-                            <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => adjustQty(item.name, 1)}>
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground">
-                            <RefreshCw className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-
-                {/* Pricing summary */}
-                <Card>
-                  <CardContent className="p-3 space-y-1.5 text-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pricing Summary</p>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Taxable Amount</span>
-                      <span>{fmt(pricing.taxable)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tax ({selectedHamper.gstPercent}%)</span>
-                      <span>{fmt(pricing.tax)}</span>
-                    </div>
-                    <div className="border-t border-border pt-1.5 flex justify-between font-bold">
-                      <span>Grand Total</span>
-                      <span className="text-primary">{fmt(pricing.grand)}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Feasibility */}
-                {feasibility && (
-                  <div className={cn("flex items-center gap-2 text-sm font-medium px-1", feasibilityMeta[feasibility].color)}>
+          <aside className="lg:overflow-y-auto flex flex-col gap-2.5">
+            {/* Preview image */}
+            <Card className="overflow-hidden flex-shrink-0">
+              <img src={selectedHamper.image} alt={selectedHamper.name} className="w-full h-36 object-cover" />
+              <CardContent className="p-2.5">
+                <div className="flex items-center justify-between">
+                  <p className="font-bold text-sm">{selectedHamper.name}</p>
+                  <div className={cn("flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full", feasibilityMeta[feasibility].color, feasibilityMeta[feasibility].bg)}>
                     {feasibilityMeta[feasibility].icon}
                     {feasibilityMeta[feasibility].label}
                   </div>
-                )}
-
-                {/* Action buttons */}
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" className="gap-1.5 text-xs">
-                    <FileText className="h-3.5 w-3.5" /> Preview PDF
-                  </Button>
-                  <Button variant="outline" className="gap-1.5 text-xs">
-                    <Save className="h-3.5 w-3.5" /> Save Draft
-                  </Button>
-                  <Button variant="secondary" className="gap-1.5 text-xs">
-                    <Send className="h-3.5 w-3.5" /> Send Quote
-                  </Button>
-                  <Button className="gap-1.5 text-xs">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Confirm Order
-                  </Button>
                 </div>
-              </>
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-center text-muted-foreground text-sm">
-                  <Package className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                  <p>Select a hamper to see the live preview and pricing summary.</p>
-                </CardContent>
-              </Card>
-            )}
+              </CardContent>
+            </Card>
+
+            {/* Editable items */}
+            <Card className="flex-shrink-0">
+              <CardContent className="p-2.5 space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Items</p>
+                {selectedHamper.items.map((item) => {
+                  const qty = qtyOverrides[item.name] ?? item.qty;
+                  return (
+                    <div key={item.name} className="flex items-center justify-between text-xs gap-1.5">
+                      <span className="flex-1 truncate">{item.name}</span>
+                      <span className="text-muted-foreground w-14 text-right">{fmt(item.unitPrice)}</span>
+                      <div className="flex items-center gap-0.5">
+                        <Button variant="outline" size="icon" className="h-5 w-5" onClick={() => adjustQty(item.name, -1)}>
+                          <Minus className="h-2.5 w-2.5" />
+                        </Button>
+                        <span className="w-5 text-center text-[11px] font-semibold tabular-nums">{qty}</span>
+                        <Button variant="outline" size="icon" className="h-5 w-5" onClick={() => adjustQty(item.name, 1)}>
+                          <Plus className="h-2.5 w-2.5" />
+                        </Button>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground">
+                        <RefreshCw className="h-2.5 w-2.5" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+
+            {/* Pricing summary — sticky feel */}
+            <Card className="border-primary/20 flex-shrink-0">
+              <CardContent className="p-3 space-y-1 text-xs">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pricing</p>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Taxable</span>
+                  <span className="tabular-nums">{fmt(pricing.taxable)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">GST ({selectedHamper.gstPercent}%)</span>
+                  <span className="tabular-nums">{fmt(pricing.tax)}</span>
+                </div>
+                <div className="border-t border-border pt-1.5 flex justify-between">
+                  <span className="font-bold text-sm">Grand Total</span>
+                  <span className="font-bold text-lg text-primary tabular-nums transition-all duration-200">{fmt(pricing.grand)}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Action bar — always visible */}
+            <div className="grid grid-cols-2 gap-1.5 flex-shrink-0 lg:sticky lg:bottom-0 bg-background pt-1 pb-1">
+              <Button variant="outline" size="sm" className="gap-1 text-[11px] h-8" onClick={() => handleAction("Preview PDF")}>
+                <FileText className="h-3.5 w-3.5" /> Preview PDF
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1 text-[11px] h-8" onClick={() => handleAction("Draft Saved")}>
+                <Save className="h-3.5 w-3.5" /> Save Draft
+              </Button>
+              <Button variant="secondary" size="sm" className="gap-1 text-[11px] h-8" onClick={() => handleAction("Quote Sent")}>
+                <Send className="h-3.5 w-3.5" /> Send Quote
+              </Button>
+              <Button size="sm" className="gap-1 text-[11px] h-8" onClick={() => handleAction("Order Confirmed")}>
+                <CheckCircle2 className="h-3.5 w-3.5" /> Confirm Order
+              </Button>
+            </div>
           </aside>
         </div>
       </main>
