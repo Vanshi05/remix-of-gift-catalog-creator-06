@@ -4,7 +4,7 @@ import { CatalogForm, CatalogPageData } from "@/components/CatalogForm";
 import { CatalogPreview } from "@/components/CatalogPreview";
 import { MultiPagePreview } from "@/components/MultiPagePreview";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, Sparkles, ChevronLeft, ChevronRight, FileText, Presentation, Receipt } from "lucide-react";
+import { Download, Eye, Sparkles, ChevronLeft, ChevronRight, FileText, Presentation, Receipt, Gift } from "lucide-react";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import PptxGenJS from "pptxgenjs";
@@ -335,6 +335,12 @@ const Index = () => {
               <Button variant="outline" className="gap-2">
                 <Receipt className="h-4 w-4" />
                 Invoice
+              </Button>
+            </Link>
+            <Link to="/staff/hamper-designer">
+              <Button variant="outline" className="gap-2">
+                <Gift className="h-4 w-4" />
+                Hamper Designer
               </Button>
             </Link>
             <Button
