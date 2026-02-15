@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 15,
-    letterSpacing: 2,
+    letterSpacing: 1, //letter spacing was 2
     color: '#1f2937',
   },
   separator: {
@@ -43,11 +43,11 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    gap: 30,
     marginBottom: 15,
   },
   column: {
     flex: 1,
+    paddingRight: 15,
   },
   sectionTitle: {
     fontSize: 9,
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   },
   textBlock: {
     color: '#374151',
-    lineHeight: 1.4,
+    lineHeight: 0.8, // lineHeight was 1.4
   },
   // Table styles
   table: {
@@ -88,22 +88,24 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e5e7eb',
     padding: 8,
     minHeight: 30,
+    alignItems: 'flex-start',
   },
   tableRowLast: {
     flexDirection: 'row',
     padding: 8,
     minHeight: 30,
+    alignItems: 'flex-start',
   },
   tableCell: {
     color: '#374151',
     fontSize: 9,
   },
   colNo: { width: '6%', textAlign: 'center' },
-  colProduct: { width: '34%' },
-  colMrp: { width: '15%', textAlign: 'center' },
-  colPreGst: { width: '15%', textAlign: 'center' },
-  colQty: { width: '10%', textAlign: 'center' },
-  colAmount: { width: '20%', textAlign: 'center' },
+  colProduct: { width: '50%' },
+  colMrp: { width: '14%', textAlign: 'center' },
+  colPreGst: { width: '12%', textAlign: 'center' },
+  colQty: { width: '8%', textAlign: 'center' },
+  colAmount: { width: '10%', textAlign: 'center' },
   // Totals
   totalsContainer: {
     alignItems: 'flex-end',
@@ -262,7 +264,7 @@ export const InvoicePdfTemplate = ({ data }: InvoicePdfTemplateProps) => {
           <View style={styles.column}>
             <Text style={styles.sectionTitle}>Billing Address:</Text>
             <Text style={styles.textBlock}>
-              {invoice.billingAddress || "N/A"}
+              {invoice.billingAddress || "N/A\n"}
               {invoice.gst ? `\n\nGST IN: ${invoice.gst}` : ''}
               {'\n'}Contact person: {invoice.contactPerson || "-"}
               {'\n'}Mobile: {invoice.mobile || "-"}
