@@ -21,10 +21,8 @@ export interface QuestionnaireData {
   packagingType: string;
   maxLeadTimeDays: number;
 
-  // Step 5: Priority Sliders
-  priceSensitivity: number;
-  deliveryPriority: number;
-  premiumness: number;
+  // Step 5: Intent Preset
+  priorityMode: "balanced" | "budget" | "fast" | "premium";
 }
 
 export const DEFAULT_QUESTIONNAIRE: QuestionnaireData = {
@@ -41,9 +39,7 @@ export const DEFAULT_QUESTIONNAIRE: QuestionnaireData = {
   dietaryNotes: "",
   packagingType: "standard",
   maxLeadTimeDays: 7,
-  priceSensitivity: 50,
-  deliveryPriority: 50,
-  premiumness: 50,
+  priorityMode: "balanced",
 };
 
 // ── Hamper types ─────────────────────────────────────────────────────

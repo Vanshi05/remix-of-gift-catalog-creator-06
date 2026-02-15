@@ -59,11 +59,11 @@ const QuestionnaireRecap = ({ data, onEdit }: QuestionnaireRecapProps) => {
 
           {data.dietaryNotes && <Row label="Diet" value={data.dietaryNotes} />}
 
-          <div className="pt-1 border-t border-border space-y-1">
-            <PriorityBar label="Price" value={data.priceSensitivity} />
-            <PriorityBar label="Delivery" value={data.deliveryPriority} />
-            <PriorityBar label="Premium" value={data.premiumness} />
-          </div>
+          <Row label="Intent" value={
+            data.priorityMode === "balanced" ? "Balanced" :
+            data.priorityMode === "budget" ? "Budget Safe" :
+            data.priorityMode === "fast" ? "Fast Delivery" : "Premium Client"
+          } />
         </div>
       </CardContent>
     </Card>
@@ -75,18 +75,6 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex justify-between gap-2">
       <span className="text-muted-foreground flex-shrink-0">{label}</span>
       <span className="text-right font-medium truncate">{value}</span>
-    </div>
-  );
-}
-
-function PriorityBar({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[10px] text-muted-foreground w-12">{label}</span>
-      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${value}%` }} />
-      </div>
-      <span className="text-[10px] tabular-nums w-6 text-right">{value}</span>
     </div>
   );
 }

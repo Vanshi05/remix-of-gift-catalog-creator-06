@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,7 +18,12 @@ import {
   DollarSign,
   Heart,
   ShieldAlert,
-  SlidersHorizontal,
+  Target,
+  Scale,
+  Wallet,
+  Zap,
+  Crown,
+  Check,
 } from "lucide-react";
 import {
   type QuestionnaireData,
@@ -39,10 +43,42 @@ const STEPS = [
   { label: "Budget", icon: DollarSign },
   { label: "Theme", icon: Heart },
   { label: "Constraints", icon: ShieldAlert },
-  { label: "Priority", icon: SlidersHorizontal },
+  { label: "Intent", icon: Target },
 ];
 
 const BUDGET_PRESETS = [1000, 1500, 2000, 3000, 5000];
+
+const INTENT_PRESETS: {
+  value: QuestionnaireData["priorityMode"];
+  label: string;
+  description: string;
+  icon: typeof Scale;
+}[] = [
+  {
+    value: "balanced",
+    label: "Balanced",
+    description: "Optimized mix of price, delivery speed, and premium feel.",
+    icon: Scale,
+  },
+  {
+    value: "budget",
+    label: "Budget Safe",
+    description: "Strictly stays within budget and avoids expensive premium items.",
+    icon: Wallet,
+  },
+  {
+    value: "fast",
+    label: "Fast Delivery",
+    description: "Prioritizes in-stock products and shortest lead-time combinations.",
+    icon: Zap,
+  },
+  {
+    value: "premium",
+    label: "Premium Client",
+    description: "Focuses on luxury items, higher perceived value, and premium packaging.",
+    icon: Crown,
+  },
+];
 
 const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
   const [step, setStep] = useState(0);
@@ -336,35 +372,45 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
           </div>
         )}
 
-        {/* Step 4: Priority */}
+        {/* Step 4: Intent Preset */}
         {step === 4 && (
           <div className="space-y-4">
-            <h2 className="text-sm font-bold text-foreground">Priority Sliders</h2>
-            <p className="text-xs text-muted-foreground">Adjust to weight the generation algorithm.</p>
-            <div className="space-y-5">
-              {([
-                { key: "priceSensitivity" as const, label: "Price Sensitivity", low: "Flexible", high: "Strict" },
-                { key: "deliveryPriority" as const, label: "Delivery Priority", low: "Relaxed", high: "Urgent" },
-                { key: "premiumness" as const, label: "Premiumness", low: "Standard", high: "Luxury" },
-              ]).map((s) => (
-                <div key={s.key} className="space-y-1.5">
-                  <div className="flex justify-between text-xs">
-                    <span className="font-medium">{s.label}</span>
-                    <span className="text-muted-foreground tabular-nums">{data[s.key]}%</span>
-                  </div>
-                  <Slider
-                    value={[data[s.key]]}
-                    onValueChange={([v]) => update(s.key, v)}
-                    min={0}
-                    max={100}
-                    step={5}
-                  />
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>{s.low}</span>
-                    <span>{s.high}</span>
-                  </div>
-                </div>
-              ))}
+            <h2 className="text-sm font-bold text-foreground">What is the client's main priority?</h2>
+            <p className="text-xs text-muted-foreground">Pick the intent that best matches this order.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {INTENT_PRESETS.map((preset) => {
+                const Icon = preset.icon;
+                const isSelected = data.priorityMode === preset.value;
+                return (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() => update("priorityMode", preset.value)}
+                    className={cn(
+                      "relative flex items-start gap-3 rounded-lg border-2 p-3.5 text-left transition-all",
+                      isSelected
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border bg-card hover:border-primary/40 hover:bg-muted/50"
+                    )}
+                  >
+                    {isSelected && (
+                      <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="h-2.5 w-2.5 text-primary-foreground" />
+                      </div>
+                    )}
+                    <div className={cn(
+                      "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
+                      isSelected ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                    )}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className={cn("text-sm font-semibold", isSelected && "text-primary")}>{preset.label}</p>
+                      <p className="text-[11px] leading-snug text-muted-foreground">{preset.description}</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
