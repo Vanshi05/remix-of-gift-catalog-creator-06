@@ -117,7 +117,7 @@ export function generateHampers(data: QuestionnaireData): GeneratedHamper[] {
 
     const badges: GeneratedHamper["badges"] = [];
     if (i === 0) badges.push("FAST DELIVERY");
-    if (data.premiumness > 60 || i === 1) badges.push("PREMIUM");
+    if (data.priorityMode === "premium" || i === 1) badges.push("PREMIUM");
     if (i >= 3) badges.push("LOW STOCK");
 
     results.push({
@@ -129,7 +129,7 @@ export function generateHampers(data: QuestionnaireData): GeneratedHamper[] {
       image: IMAGES[i],
       badges,
       items,
-      gstPercent: data.premiumness > 60 ? 18 : 12,
+      gstPercent: data.priorityMode === "premium" ? 18 : 12,
       confidence,
       feasibility,
       whyChosen: pickRandom(WHY_CHOSEN_POOL, 2 + (i < 3 ? 1 : 0)),
