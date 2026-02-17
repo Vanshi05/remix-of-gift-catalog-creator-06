@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { InvoiceSearch } from '@/components/invoice/InvoiceSearch';
 import { InvoicePreview } from '@/components/invoice/InvoicePreview';
@@ -8,61 +8,92 @@ import { useInvoice } from '@/hooks/useInvoice';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, AlertCircle } from 'lucide-react';
+import { FileText, AlertCircle, Undo2, CheckCircle2, ArrowLeft, PenLine } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { InvoiceLineItem } from '@/types/invoice';
+import { Separator } from '@/components/ui/separator';
+import { InvoiceData, InvoiceLineItem } from '@/types/invoice';
+import { Badge } from '@/components/ui/badge';
 
 export default function InvoiceGenerator() {
   const [searchParams] = useSearchParams();
-  const { 
-    invoiceData, 
-    recentInvoices, 
-    loading, 
-    error, 
-    fetchInvoice, 
+  const {
+    invoiceData,
+    recentInvoices,
+    loading,
+    error,
+    fetchInvoice,
     fetchRecentInvoices,
     updateInvoiceData
   } = useInvoice();
 
+  // Undo history
+  const [history, setHistory] = useState<InvoiceData[]>([]);
+  const [draftDirty, setDraftDirty] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  const draftTimer = useRef<ReturnType<typeof setTimeout>>();
+
   useEffect(() => {
     fetchRecentInvoices();
-    
-    // Auto-fetch if invoice number in URL
     const invoiceNumber = searchParams.get('number');
     if (invoiceNumber) {
       fetchInvoice(invoiceNumber);
     }
   }, [searchParams, fetchRecentInvoices, fetchInvoice]);
 
-  const handleAddShipping = (shippingItem: InvoiceLineItem) => {
+  // Reset state when new invoice loads
+  useEffect(() => {
+    if (invoiceData) {
+      setHistory([]);
+      setDraftDirty(false);
+      setShowReview(false);
+    }
+  }, [invoiceData?.invoice?.invoiceNumber]);
+
+  const handleUpdate = useCallback((newData: InvoiceData) => {
+    // Push current state to history before update
     updateInvoiceData((prev) => {
-      const newItems = [...prev.items, shippingItem];
-      
-      // Recalculate totals
-      let taxableAmount = 0;
-      let taxAmount = 0;
+      setHistory(h => [...h.slice(-19), prev]); // keep last 20
+      return newData;
+    });
+    setDraftDirty(true);
+    // Reset draft indicator after 2s
+    clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(() => setDraftDirty(false), 2000);
+  }, [updateInvoiceData]);
 
-      newItems.forEach(item => {
-        const itemTotal = (item.pre_tax_price || 0) * (item.qty_sold || 1);
-        taxableAmount += itemTotal;
-        taxAmount += (itemTotal * (item.gst || 0)) / 100;
-      });
+  const handleUndo = useCallback(() => {
+    if (history.length === 0) return;
+    const prev = history[history.length - 1];
+    setHistory(h => h.slice(0, -1));
+    updateInvoiceData(() => prev);
+  }, [history, updateInvoiceData]);
 
-      const grandTotal = taxableAmount + taxAmount;
-
-      return {
-        ...prev,
-        items: newItems,
-        totals: {
+  const handleAddShipping = (shippingItem: InvoiceLineItem) => {
+    if (!invoiceData) return;
+    handleUpdate({
+      ...invoiceData,
+      items: [...invoiceData.items, shippingItem],
+      totals: (() => {
+        const newItems = [...invoiceData.items, shippingItem];
+        let taxableAmount = 0;
+        let taxAmount = 0;
+        newItems.forEach(item => {
+          const itemTotal = (item.pre_tax_price || 0) * (item.qty_sold || 1);
+          taxableAmount += itemTotal;
+          taxAmount += (itemTotal * (item.gst || 0)) / 100;
+        });
+        return {
           taxableAmount: Math.round(taxableAmount * 100) / 100,
           taxAmount: Math.round(taxAmount * 100) / 100,
-          grandTotal: Math.round(grandTotal * 100) / 100
-        }
-      };
+          grandTotal: Math.round((taxableAmount + taxAmount) * 100) / 100,
+        };
+      })(),
     });
   };
+
+  const formatCurrency = (amount: number) =>
+    amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div className="min-h-screen bg-background">
@@ -81,29 +112,23 @@ export default function InvoiceGenerator() {
             </div>
             <div>
               <h1 className="text-3xl font-bold">Invoice Generator</h1>
-              <p className="text-muted-foreground">Search, preview, and download invoices</p>
+              <p className="text-muted-foreground">Search, edit, and download invoices</p>
             </div>
           </div>
         </div>
 
-        {/* Search Section */}
+        {/* Search */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Search Invoice</CardTitle>
-            <CardDescription>
-              Enter an invoice number or select from recent invoices
-            </CardDescription>
+            <CardDescription>Enter an invoice number or select from recent invoices</CardDescription>
           </CardHeader>
           <CardContent>
-            <InvoiceSearch
-              onSearch={fetchInvoice}
-              recentInvoices={recentInvoices}
-              loading={loading}
-            />
+            <InvoiceSearch onSearch={fetchInvoice} recentInvoices={recentInvoices} loading={loading} />
           </CardContent>
         </Card>
 
-        {/* Error State */}
+        {/* Error */}
         {error && (
           <Alert variant="destructive" className="mb-8">
             <AlertCircle className="h-4 w-4" />
@@ -112,7 +137,7 @@ export default function InvoiceGenerator() {
           </Alert>
         )}
 
-        {/* Loading State */}
+        {/* Loading */}
         {loading && (
           <Card className="mb-8">
             <CardContent className="p-8">
@@ -121,32 +146,107 @@ export default function InvoiceGenerator() {
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-32 w-full" />
-                <Skeleton className="h-4 w-1/2" />
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Invoice Preview */}
-        {invoiceData && !loading && (
+        {/* Invoice Editor or Review */}
+        {invoiceData && !loading && !showReview && (
           <div className="space-y-6">
-            {/* Actions */}
+            {/* Toolbar */}
             <div className="flex justify-between items-center flex-wrap gap-4">
-              <h2 className="text-xl font-semibold">Invoice Preview</h2>
-              <div className="flex gap-3 flex-wrap">
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-semibold">Invoice Editor</h2>
+                {draftDirty && (
+                  <Badge variant="outline" className="text-xs animate-pulse gap-1">
+                    <PenLine className="h-3 w-3" /> Editing...
+                  </Badge>
+                )}
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleUndo}
+                  disabled={history.length === 0}
+                >
+                  <Undo2 className="h-4 w-4 mr-1" /> Undo
+                </Button>
                 <AddShippingDialog onAddShipping={handleAddShipping} />
-                <InvoiceActions invoiceData={invoiceData} />
+                <Button onClick={() => setShowReview(true)}>
+                  <CheckCircle2 className="h-4 w-4 mr-1" /> Review & Generate
+                </Button>
               </div>
             </div>
 
             {/* Preview */}
             <div className="overflow-auto">
-              <InvoicePreview data={invoiceData} />
+              <InvoicePreview data={invoiceData} onUpdate={handleUpdate} />
             </div>
           </div>
         )}
 
-        {/* Empty State */}
+        {/* Pre-send Review Panel */}
+        {invoiceData && !loading && showReview && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                  Review Before Generating PDF
+                </CardTitle>
+                <CardDescription>Confirm the details below before downloading.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase font-medium">Client / Billing</p>
+                      <p className="text-sm font-semibold mt-1">{invoiceData.invoice.contactPerson || 'N/A'}</p>
+                      <p className="text-xs text-muted-foreground whitespace-pre-line">{invoiceData.invoice.billingAddress || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase font-medium">Invoice</p>
+                      <p className="text-sm">{invoiceData.invoice.invoiceNumber} — {invoiceData.invoice.invoiceDate}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase font-medium">Line Items</p>
+                      <p className="text-sm">{invoiceData.items.length} item(s), {invoiceData.items.reduce((s, i) => s + (i.qty_sold || 0), 0)} total qty</p>
+                    </div>
+                    <Separator />
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Taxable:</span>
+                        <span>₹ {formatCurrency(invoiceData.totals.taxableAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Tax:</span>
+                        <span>₹ {formatCurrency(invoiceData.totals.taxAmount)}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between font-bold text-lg">
+                        <span>Grand Total:</span>
+                        <span>₹ {formatCurrency(invoiceData.totals.grandTotal)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={() => setShowReview(false)}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back to Edit
+              </Button>
+              <InvoiceActions invoiceData={invoiceData} />
+            </div>
+          </div>
+        )}
+
+        {/* Empty */}
         {!invoiceData && !loading && !error && (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-16 text-center">

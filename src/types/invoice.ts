@@ -47,6 +47,7 @@ export interface InvoiceData {
   seller?: SellerInfo;
   bankDetails?: BankDetails;
   terms?: string[];
+  paymentTerms?: string[];
 }
 
 export interface RecentInvoice {
