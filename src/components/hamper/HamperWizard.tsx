@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
+
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -238,25 +238,36 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
                   </Button>
                 ))}
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs">
+              <div className="space-y-3">
+                <Label className="text-xs font-medium">
                   {data.budgetMode === "per-hamper" ? "Budget per hamper" : "Total budget"} (₹)
                 </Label>
-                <div className="flex items-center gap-2">
-                  <Slider
-                    value={[data.budget]}
-                    onValueChange={([v]) => update("budget", v)}
-                    min={200}
-                    max={10000}
-                    step={100}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={data.budget}
-                    onChange={(e) => update("budget", Number(e.target.value) || 200)}
-                    className={cn("w-24 h-8 text-sm text-center", errors.budget && "border-destructive")}
-                  />
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10 w-10 text-sm font-bold shrink-0"
+                    onClick={() => update("budget", Math.max(100, data.budget - 100))}
+                  >
+                    −
+                  </Button>
+                  <div className="relative flex-1 max-w-[180px]">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">₹</span>
+                    <Input
+                      type="number"
+                      value={data.budget}
+                      onChange={(e) => update("budget", Math.max(0, Number(e.target.value) || 0))}
+                      className={cn("h-10 text-lg font-semibold pl-7 text-center", errors.budget && "border-destructive")}
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10 w-10 text-sm font-bold shrink-0"
+                    onClick={() => update("budget", data.budget + 100)}
+                  >
+                    +
+                  </Button>
                 </div>
                 <div className="flex gap-1.5 flex-wrap">
                   {BUDGET_PRESETS.map((p) => (
@@ -264,7 +275,7 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
                       key={p}
                       variant={data.budget === p ? "default" : "outline"}
                       size="sm"
-                      className="h-6 text-[10px] px-2"
+                      className="h-7 text-xs px-3"
                       onClick={() => update("budget", p)}
                     >
                       {fmt(p)}
