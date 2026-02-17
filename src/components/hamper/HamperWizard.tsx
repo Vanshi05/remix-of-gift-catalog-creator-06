@@ -222,10 +222,10 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
 
         {/* Step 1: Budget */}
         {step === 1 && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <h2 className="text-sm font-bold text-foreground">Budget & Quantity</h2>
-            <div className="space-y-3">
-              <div className="flex gap-2">
+            <div className="space-y-4">
+              <div className="flex gap-2 justify-center">
                 {(["per-hamper", "total"] as const).map((m) => (
                   <Button
                     key={m}
@@ -242,7 +242,7 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
                 <Label className="text-xs font-medium">
                   {data.budgetMode === "per-hamper" ? "Budget per hamper" : "Total budget"} (₹)
                 </Label>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -251,7 +251,7 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
                   >
                     −
                   </Button>
-                  <div className="relative flex-1 max-w-[180px]">
+                  <div className="relative w-[200px]">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">₹</span>
                     <Input
                       type="number"
@@ -269,7 +269,7 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
                     +
                   </Button>
                 </div>
-                <div className="flex gap-1.5 flex-wrap">
+                <div className="flex gap-1.5 flex-wrap justify-center">
                   {BUDGET_PRESETS.map((p) => (
                     <Button
                       key={p}
@@ -283,13 +283,13 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
                   ))}
                 </div>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 flex flex-col items-center">
                 <Label className="text-xs">Quantity</Label>
                 <Input
                   type="number"
                   value={data.quantity}
                   onChange={(e) => update("quantity", Number(e.target.value) || 1)}
-                  className={cn("h-8 text-sm w-24", errors.quantity && "border-destructive")}
+                  className={cn("h-8 text-sm w-24 text-center", errors.quantity && "border-destructive")}
                   min={1}
                 />
               </div>
