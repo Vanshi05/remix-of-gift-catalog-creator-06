@@ -308,9 +308,14 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                         <>
                           <p className="text-sm font-bold text-gray-900 mb-1">{item.gift_hamper_name}</p>
                           {configItems.length > 0 && (
-                            <p className="text-xs text-gray-600 whitespace-pre-line leading-relaxed">
-                              {typeof item.gh_config === 'string' ? item.gh_config : ''}
-                            </p>
+                            <ul className="mt-1 space-y-0.5">
+                              {configItems.map((ci, ci_idx) => (
+                                <li key={ci_idx} className="text-xs text-gray-600 flex gap-1">
+                                  <span>•</span>
+                                  <span>{ci}</span>
+                                </li>
+                              ))}
+                            </ul>
                           )}
                         </>
                       ) : (
