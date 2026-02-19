@@ -12,6 +12,7 @@ import loopifyLogo from '@/assets/loopify-logo.jpg';
 interface InvoicePreviewProps {
   data: InvoiceData;
   onUpdate: (data: InvoiceData) => void;
+  readOnly?: boolean;
 }
 
 const formatCurrency = (amount: number) =>
@@ -33,7 +34,7 @@ function recalcTotals(items: InvoiceLineItem[]) {
 }
 
 export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
-  ({ data, onUpdate }, ref) => {
+  ({ data, onUpdate, readOnly = false }, ref) => {
     const { invoice, items, seller, bankDetails, terms } = data;
 
     const defaultSeller = seller || {
@@ -124,9 +125,11 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
     return (
       <Card ref={ref} className="p-8 bg-white text-black print:shadow-none" id="invoice-preview">
         {/* Editable hint */}
-        <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 print:hidden">
-          ✏️ All fields are editable. Click any text to modify. Changes recalculate totals automatically.
-        </div>
+        {!readOnly && (
+          <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 print:hidden">
+            ✏️ All fields are editable. Click any text to modify. Changes recalculate totals automatically.
+          </div>
+        )}
 
         {/* Header */}
         <div className="flex justify-between items-start mb-6">
