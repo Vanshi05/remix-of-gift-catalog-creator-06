@@ -147,6 +147,7 @@ const styles = StyleSheet.create({
   termText: {
     color: '#374151',
     // Tighter leading to avoid the "too spaced out" look in PDF
+    fontSize: 9.5,
     lineHeight: 1.25,
   },
   // Bank details
@@ -226,9 +227,6 @@ export const InvoicePdfTemplate = ({ data }: InvoicePdfTemplateProps) => {
     "50% balance payment before dispatch"
   ];
 
-  // Build terms as bullet list in single block
-  const termsText = terms.map(t => `• ${t}`).join('\n');
-  const paymentTermsText = paymentTerms.map(t => `• ${t}`).join('\n');
 
   // Build bank details as single block
   const bankText = `Account Name: LOOPIFY WORLD PVT LTD\nBank Name: ${bankDetails.bankName}\nBank Account number: ${bankDetails.accountNumber}\nIFSC Code: ${bankDetails.ifsc}\nBranch: ${bankDetails.branch}`;
@@ -338,13 +336,25 @@ export const InvoicePdfTemplate = ({ data }: InvoicePdfTemplateProps) => {
         {/* Terms */}
         <View style={styles.termsSection}>
           <Text style={styles.sectionTitle}>TERMS:</Text>
-          <Text style={styles.termText}>{termsText}</Text>
+
+          {terms.map((t, i) => (
+            <View key={i} style={{ flexDirection: 'row', marginBottom: 2 }}>
+              <Text style={styles.termText}>• </Text>
+              <Text style={[styles.termText, { flex: 1 }]}>{t}</Text>
+            </View>
+          ))}
         </View>
 
         {/* Payment Terms */}
         <View style={styles.termsSection}>
           <Text style={styles.sectionTitle}>PAYMENT TERMS:</Text>
-          <Text style={styles.termText}>{paymentTermsText}</Text>
+
+          {paymentTerms.map((t, i) => (
+            <View key={i} style={{ flexDirection: 'row', marginBottom: 2 }}>
+              <Text style={styles.termText}>• </Text>
+              <Text style={[styles.termText, { flex: 1 }]}>{t}</Text>
+            </View>
+          ))}
         </View>
 
         {/* Bank Details */}

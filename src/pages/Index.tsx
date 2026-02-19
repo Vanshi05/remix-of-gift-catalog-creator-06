@@ -188,7 +188,9 @@ const Index = () => {
               fontSize: 10,
               color: '7A6451',
               fontFace: 'Asap',
-              lineSpacing: 12,
+              lineSpacing: 11,
+              paraSpaceAfter: 0,
+              paraSpaceBefore: 0,
             });
             currentY += 0.75;
           }
@@ -203,6 +205,8 @@ const Index = () => {
                 color: '7A6451',
                 fontSize: 10,
                 fontFace: 'Asap',
+                paraSpaceAfter: 0,
+                paraSpaceBefore: 0,
               } 
             }));
 
@@ -213,7 +217,9 @@ const Index = () => {
               w: contentW2,
               h: 2.0,
               valign: 'top',
-              lineSpacing: 14,
+              lineSpacing: 11,
+              paraSpaceAfter: 0,
+              paraSpaceBefore: 0,
             });
           }
 
