@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
+
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -222,66 +222,83 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
 
         {/* Step 1: Budget */}
         {step === 1 && (
-          <div className="space-y-4">
+          <div className="max-w-[580px] mx-auto w-full space-y-4">
             <h2 className="text-sm font-bold text-foreground">Budget & Quantity</h2>
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                {(["per-hamper", "total"] as const).map((m) => (
-                  <Button
-                    key={m}
-                    variant={data.budgetMode === m ? "default" : "outline"}
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => update("budgetMode", m)}
-                  >
-                    {m === "per-hamper" ? "Per Hamper" : "Total Budget"}
-                  </Button>
-                ))}
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">
-                  {data.budgetMode === "per-hamper" ? "Budget per hamper" : "Total budget"} (₹)
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Slider
-                    value={[data.budget]}
-                    onValueChange={([v]) => update("budget", v)}
-                    min={200}
-                    max={10000}
-                    step={100}
-                    className="flex-1"
-                  />
+
+            {/* Mode toggle */}
+            <div className="flex gap-2 justify-center">
+              {(["per-hamper", "total"] as const).map((m) => (
+                <Button
+                  key={m}
+                  variant={data.budgetMode === m ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => update("budgetMode", m)}
+                >
+                  {m === "per-hamper" ? "Per Hamper" : "Total Budget"}
+                </Button>
+              ))}
+            </div>
+
+            {/* Budget input group */}
+            <div className="flex flex-col items-center gap-3">
+              <Label className="text-xs font-medium text-muted-foreground">
+                {data.budgetMode === "per-hamper" ? "Budget per hamper" : "Total budget"} (₹)
+              </Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 shrink-0 text-base font-bold"
+                  onClick={() => update("budget", Math.max(100, data.budget - 100))}
+                >
+                  −
+                </Button>
+                <div className="relative w-[180px]">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">₹</span>
                   <Input
                     type="number"
                     value={data.budget}
-                    onChange={(e) => update("budget", Number(e.target.value) || 200)}
-                    className={cn("w-24 h-8 text-sm text-center", errors.budget && "border-destructive")}
+                    onChange={(e) => update("budget", Math.max(0, Number(e.target.value) || 0))}
+                    className={cn("h-10 text-lg font-semibold pl-7 text-center", errors.budget && "border-destructive")}
                   />
                 </div>
-                <div className="flex gap-1.5 flex-wrap">
-                  {BUDGET_PRESETS.map((p) => (
-                    <Button
-                      key={p}
-                      variant={data.budget === p ? "default" : "outline"}
-                      size="sm"
-                      className="h-6 text-[10px] px-2"
-                      onClick={() => update("budget", p)}
-                    >
-                      {fmt(p)}
-                    </Button>
-                  ))}
-                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 shrink-0 text-base font-bold"
+                  onClick={() => update("budget", data.budget + 100)}
+                >
+                  +
+                </Button>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Quantity</Label>
-                <Input
-                  type="number"
-                  value={data.quantity}
-                  onChange={(e) => update("quantity", Number(e.target.value) || 1)}
-                  className={cn("h-8 text-sm w-24", errors.quantity && "border-destructive")}
-                  min={1}
-                />
+
+              {/* Preset chips */}
+              <div className="flex gap-2 flex-wrap justify-center">
+                {BUDGET_PRESETS.map((p) => (
+                  <Button
+                    key={p}
+                    variant={data.budget === p ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-xs px-3.5 rounded-full"
+                    onClick={() => update("budget", p)}
+                  >
+                    {fmt(p)}
+                  </Button>
+                ))}
               </div>
+            </div>
+
+            {/* Quantity */}
+            <div className="flex flex-col items-center gap-1.5 pt-2">
+              <Label className="text-xs font-medium text-muted-foreground">Quantity</Label>
+              <Input
+                type="number"
+                value={data.quantity}
+                onChange={(e) => update("quantity", Number(e.target.value) || 1)}
+                className={cn("h-10 text-sm w-[120px] text-center", errors.quantity && "border-destructive")}
+                min={1}
+              />
             </div>
           </div>
         )}

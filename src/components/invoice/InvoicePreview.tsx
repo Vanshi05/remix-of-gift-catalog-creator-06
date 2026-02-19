@@ -1,28 +1,40 @@
-import { forwardRef } from 'react';
-import { InvoiceData } from '@/types/invoice';
+import { forwardRef, useCallback } from 'react';
+import { InvoiceData, InvoiceLineItem } from '@/types/invoice';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Plus, Trash2 } from 'lucide-react';
 import loopifyLogo from '@/assets/loopify-logo.jpg';
 
 interface InvoicePreviewProps {
   data: InvoiceData;
+  onUpdate: (data: InvoiceData) => void;
 }
 
-// Editable span component for inline editing
-const EditableText = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <span
-    contentEditable
-    suppressContentEditableWarning
-    className={`outline-none focus:bg-yellow-100 focus:px-1 rounded ${className}`}
-  >
-    {children}
-  </span>
-);
+const formatCurrency = (amount: number) =>
+  amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function recalcTotals(items: InvoiceLineItem[]) {
+  let taxableAmount = 0;
+  let taxAmount = 0;
+  items.forEach(item => {
+    const itemTotal = (item.pre_tax_price || 0) * (item.qty_sold || 1);
+    taxableAmount += itemTotal;
+    taxAmount += (itemTotal * (item.gst || 0)) / 100;
+  });
+  return {
+    taxableAmount: Math.round(taxableAmount * 100) / 100,
+    taxAmount: Math.round(taxAmount * 100) / 100,
+    grandTotal: Math.round((taxableAmount + taxAmount) * 100) / 100,
+  };
+}
 
 export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
-  ({ data }, ref) => {
-    const { invoice, items, totals, seller, bankDetails, terms } = data;
+  ({ data, onUpdate }, ref) => {
+    const { invoice, items, seller, bankDetails, terms } = data;
 
     const defaultSeller = seller || {
       name: "Loopify World Private Ltd",
@@ -46,31 +58,95 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
       "The total invoice value, inclusive of GST, must be paid as per the agreed terms. Withholding or delaying the GST component is not permitted. Loopify will hold dispatch until the full amount is received."
     ];
 
-    const paymentTerms = [
+    const paymentTerms = data.paymentTerms || [
       "50% advance payment at the time of order confirmation.",
       "50% balance payment before dispatch"
     ];
 
-    const formatCurrency = (amount: number) => {
-      return amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    // Helpers to push updates
+    const updateInvoice = useCallback((field: string, value: string) => {
+      onUpdate({ ...data, invoice: { ...data.invoice, [field]: value } });
+    }, [data, onUpdate]);
+
+    const updateItem = useCallback((index: number, field: keyof InvoiceLineItem, value: string | number) => {
+      const newItems = [...items];
+      newItems[index] = { ...newItems[index], [field]: value };
+      onUpdate({ ...data, items: newItems, totals: recalcTotals(newItems) });
+    }, [data, items, onUpdate]);
+
+    const removeItem = useCallback((index: number) => {
+      const newItems = items.filter((_, i) => i !== index);
+      onUpdate({ ...data, items: newItems, totals: recalcTotals(newItems) });
+    }, [data, items, onUpdate]);
+
+    const addItem = useCallback(() => {
+      const newItem: InvoiceLineItem = {
+        id: `new-${Date.now()}`,
+        gift_hamper_name: 'New Item',
+        mrp: 0,
+        pre_tax_price: 0,
+        qty_sold: 1,
+        gst: 18,
+        gh_config: '',
+      };
+      const newItems = [...items, newItem];
+      onUpdate({ ...data, items: newItems, totals: recalcTotals(newItems) });
+    }, [data, items, onUpdate]);
+
+    const updateTerms = useCallback((index: number, value: string) => {
+      const newTerms = [...defaultTerms];
+      newTerms[index] = value;
+      onUpdate({ ...data, terms: newTerms });
+    }, [data, defaultTerms, onUpdate]);
+
+    const updatePaymentTerms = useCallback((index: number, value: string) => {
+      const newPT = [...paymentTerms];
+      newPT[index] = value;
+      onUpdate({ ...data, paymentTerms: newPT });
+    }, [data, paymentTerms, onUpdate]);
+
+    const updateBank = useCallback((field: string, value: string) => {
+      onUpdate({ ...data, bankDetails: { ...defaultBankDetails, ...data.bankDetails, [field]: value } });
+    }, [data, defaultBankDetails, onUpdate]);
+
+    const updateSeller = useCallback((field: string, value: string) => {
+      onUpdate({ ...data, seller: { ...defaultSeller, ...data.seller, [field]: value } });
+    }, [data, defaultSeller, onUpdate]);
+
+    // Parse gh_config items
+    const parseConfigItems = (config: string | string[] | undefined): string[] => {
+      if (!config) return [];
+      const configStr = typeof config === 'string' ? config : config.join(' ');
+      const matches = configStr.match(/\(\d+\)\s*[^|()]+/g);
+      return matches ? matches.map(m => m.trim()) : [];
     };
 
     return (
       <Card ref={ref} className="p-8 bg-white text-black print:shadow-none" id="invoice-preview">
         {/* Editable hint */}
         <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 print:hidden">
-          💡 Click on billing address or contact details to edit. Changes will be reflected in the PDF.
+          ✏️ All fields are editable. Click any text to modify. Changes recalculate totals automatically.
         </div>
-        
-        {/* Header with Logo and Invoice Info */}
+
+        {/* Header */}
         <div className="flex justify-between items-start mb-6">
-          <div className="space-y-1">
-            <p className="text-sm">
-              <span className="font-semibold">Invoice Number:</span> {invoice.invoiceNumber}
-            </p>
-            <p className="text-sm">
-              <span className="font-semibold">Invoice Date:</span> {invoice.invoiceDate}
-            </p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-semibold whitespace-nowrap">Invoice Number:</span>
+              <Input
+                value={invoice.invoiceNumber}
+                onChange={(e) => updateInvoice('invoiceNumber', e.target.value)}
+                className="h-7 text-sm w-[180px] bg-transparent border-dashed"
+              />
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-semibold whitespace-nowrap">Invoice Date:</span>
+              <Input
+                value={invoice.invoiceDate}
+                onChange={(e) => updateInvoice('invoiceDate', e.target.value)}
+                className="h-7 text-sm w-[180px] bg-transparent border-dashed"
+              />
+            </div>
           </div>
           <img src={loopifyLogo} alt="Loopify Logo" className="h-16 object-contain" />
         </div>
@@ -82,92 +158,165 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
 
         <Separator className="my-4" />
 
-        {/* Seller & Buyer Info */}
+        {/* Seller & Buyer */}
         <div className="grid grid-cols-2 gap-8 mb-6">
-          {/* Seller Info */}
+          {/* Seller */}
           <div>
             <h3 className="font-semibold text-sm uppercase text-gray-600 mb-2">Seller:</h3>
-            <div className="space-y-1 text-sm">
-              <p className="font-bold">{defaultSeller.name}</p>
-              <p className="whitespace-pre-line text-gray-700">{defaultSeller.address}</p>
-              <p className="text-gray-700">GST # : {defaultSeller.gst}</p>
+            <div className="space-y-2 text-sm">
+              <Input
+                value={defaultSeller.name}
+                onChange={(e) => updateSeller('name', e.target.value)}
+                className="h-7 text-sm font-bold bg-transparent border-dashed"
+              />
+              <Textarea
+                value={defaultSeller.address}
+                onChange={(e) => updateSeller('address', e.target.value)}
+                className="text-sm text-gray-700 bg-transparent border-dashed min-h-[60px] resize-none"
+              />
+              <div className="flex items-center gap-1 text-gray-700">
+                <span>GST #:</span>
+                <Input
+                  value={defaultSeller.gst}
+                  onChange={(e) => updateSeller('gst', e.target.value)}
+                  className="h-7 text-sm bg-transparent border-dashed"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Billing Address */}
+          {/* Billing */}
           <div>
             <h3 className="font-semibold text-sm uppercase text-gray-600 mb-1">Billing Address:</h3>
-            <p className="whitespace-pre-line text-sm text-gray-700"><EditableText>{invoice.billingAddress || "N/A"}</EditableText></p>
-            
-            <div className="mt-4 space-y-1 text-sm">
-              {invoice.gst && <p className="text-gray-700">GST IN: <EditableText>{invoice.gst}</EditableText></p>}
-              <p className="text-gray-700">Contact person: <EditableText>{invoice.contactPerson || "-"}</EditableText></p>
-              <p className="text-gray-700">Mobile: <EditableText>{invoice.mobile || "-"}</EditableText></p>
-              <p className="text-gray-700">Email: <EditableText>{invoice.email || "-"}</EditableText></p>
+            <Textarea
+              value={invoice.billingAddress || ''}
+              onChange={(e) => updateInvoice('billingAddress', e.target.value)}
+              className="text-sm text-gray-700 bg-transparent border-dashed min-h-[60px] resize-none mb-3"
+            />
+            <div className="space-y-2 text-sm">
+              {invoice.gst && (
+                <div className="flex items-center gap-1 text-gray-700">
+                  <span className="whitespace-nowrap">GST IN:</span>
+                  <Input
+                    value={invoice.gst}
+                    onChange={(e) => updateInvoice('gst', e.target.value)}
+                    className="h-7 text-sm bg-transparent border-dashed"
+                  />
+                </div>
+              )}
+              <div className="flex items-center gap-1 text-gray-700">
+                <span className="whitespace-nowrap">Contact:</span>
+                <Input
+                  value={invoice.contactPerson || ''}
+                  onChange={(e) => updateInvoice('contactPerson', e.target.value)}
+                  className="h-7 text-sm bg-transparent border-dashed"
+                />
+              </div>
+              <div className="flex items-center gap-1 text-gray-700">
+                <span className="whitespace-nowrap">Mobile:</span>
+                <Input
+                  value={invoice.mobile || ''}
+                  onChange={(e) => updateInvoice('mobile', e.target.value)}
+                  className="h-7 text-sm bg-transparent border-dashed"
+                />
+              </div>
+              <div className="flex items-center gap-1 text-gray-700">
+                <span className="whitespace-nowrap">Email:</span>
+                <Input
+                  value={invoice.email || ''}
+                  onChange={(e) => updateInvoice('email', e.target.value)}
+                  className="h-7 text-sm bg-transparent border-dashed"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Line Items Table */}
+        {/* Line Items */}
         <div className="mb-6 border rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-100">
-                <TableHead className="w-12 text-center font-semibold text-black">No</TableHead>
+                <TableHead className="w-10 text-center font-semibold text-black">No</TableHead>
                 <TableHead className="font-semibold text-black">Product</TableHead>
-                <TableHead className="text-center font-semibold text-black">MRP (Rs)</TableHead>
-                <TableHead className="text-center font-semibold text-black">Pre GST Price (Rs)</TableHead>
-                <TableHead className="text-center font-semibold text-black">Qty</TableHead>
-                <TableHead className="text-center font-semibold text-black">Amount (Rs)</TableHead>
+                <TableHead className="text-center font-semibold text-black w-[100px]">Pre GST (₹)</TableHead>
+                <TableHead className="text-center font-semibold text-black w-[70px]">GST %</TableHead>
+                <TableHead className="text-center font-semibold text-black w-[70px]">Qty</TableHead>
+                <TableHead className="text-center font-semibold text-black w-[110px]">Amount (₹)</TableHead>
+                <TableHead className="w-10 print:hidden" />
               </TableRow>
             </TableHeader>
             <TableBody>
-            {items.map((item, index) => {
-                const gstPercent = item.gst || 0;
-                const preTaxAmount = item.pre_tax_price || 0;
-                // MRP = pre_gst_price * (1 + gst/100)
-                const mrp = preTaxAmount * (1 + gstPercent / 100);
-                // Amount = MRP * qty (tax-inclusive)
+              {items.map((item, index) => {
+                const mrp = (item.pre_tax_price || 0) * (1 + (item.gst || 0) / 100);
                 const amount = mrp * (item.qty_sold || 1);
-                
-                // Parse gh_config to extract only item names with quantities
-                // Format: "(1) item-name | pr_xxx | xx (2) item-name | pr_xxx | xx"
-                // We want: "(1) item-name" for each item
-                const parseConfigItems = (config: string | string[] | undefined): string[] => {
-                  if (!config) return [];
-                  const configStr = typeof config === 'string' ? config : config.join(' ');
-                  // Match pattern: (number) item-name (stops before | or next parenthesis)
-                  const matches = configStr.match(/\(\d+\)\s*[^|()]+/g);
-                  if (matches) {
-                    return matches.map(m => m.trim());
-                  }
-                  return [];
-                };
-                
                 const configItems = parseConfigItems(item.gh_config);
-                
+
                 return (
                   <TableRow key={item.id || index} className="border-b">
-                    <TableCell className="text-center align-top">{index + 1}</TableCell>
+                    <TableCell className="text-center align-top text-sm">{index + 1}</TableCell>
                     <TableCell className="align-top">
-                      <div className="font-bold">{item.gift_hamper_name}</div>
+                      <Input
+                        value={item.gift_hamper_name}
+                        onChange={(e) => updateItem(index, 'gift_hamper_name', e.target.value)}
+                        className="h-7 text-sm font-bold bg-transparent border-dashed mb-1"
+                      />
                       {configItems.length > 0 && (
-                        <ul className="mt-2 ml-4 list-disc text-sm text-gray-700 space-y-1">
-                          {configItems.map((configItem, idx) => (
-                            <li key={idx}>{configItem}</li>
-                          ))}
-                        </ul>
+                        <Textarea
+                          value={typeof item.gh_config === 'string' ? item.gh_config : ''}
+                          onChange={(e) => updateItem(index, 'gh_config', e.target.value)}
+                          className="text-xs text-gray-600 bg-transparent border-dashed min-h-[40px] resize-none"
+                          placeholder="Item config..."
+                        />
                       )}
                     </TableCell>
-                    <TableCell className="text-center align-top">{formatCurrency(mrp)}</TableCell>
-                    <TableCell className="text-center align-top">{formatCurrency(preTaxAmount)}</TableCell>
-                    <TableCell className="text-center align-top">{item.qty_sold}</TableCell>
-                    <TableCell className="text-center font-medium align-top">{formatCurrency(amount)}</TableCell>
+                    <TableCell className="text-center align-top">
+                      <Input
+                        type="number"
+                        value={item.pre_tax_price}
+                        onChange={(e) => updateItem(index, 'pre_tax_price', parseFloat(e.target.value) || 0)}
+                        className="h-7 text-sm text-center bg-transparent border-dashed w-[90px]"
+                      />
+                    </TableCell>
+                    <TableCell className="text-center align-top">
+                      <Input
+                        type="number"
+                        value={item.gst}
+                        onChange={(e) => updateItem(index, 'gst', parseFloat(e.target.value) || 0)}
+                        className="h-7 text-sm text-center bg-transparent border-dashed w-[60px]"
+                      />
+                    </TableCell>
+                    <TableCell className="text-center align-top">
+                      <Input
+                        type="number"
+                        value={item.qty_sold}
+                        onChange={(e) => updateItem(index, 'qty_sold', parseInt(e.target.value) || 1)}
+                        className="h-7 text-sm text-center bg-transparent border-dashed w-[60px]"
+                      />
+                    </TableCell>
+                    <TableCell className="text-center font-medium align-top text-sm">
+                      {formatCurrency(amount)}
+                    </TableCell>
+                    <TableCell className="align-top print:hidden">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => removeItem(index)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 );
               })}
             </TableBody>
           </Table>
+          <div className="p-2 print:hidden">
+            <Button variant="ghost" size="sm" onClick={addItem} className="text-xs">
+              <Plus className="h-3.5 w-3.5 mr-1" /> Add Line Item
+            </Button>
+          </div>
         </div>
 
         {/* Totals */}
@@ -175,16 +324,16 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
           <div className="w-72 space-y-2 bg-gray-50 p-4 rounded-lg">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Taxable amount:</span>
-              <span className="font-medium">{formatCurrency(totals.taxableAmount)}</span>
+              <span className="font-medium">{formatCurrency(data.totals.taxableAmount)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Tax:</span>
-              <span className="font-medium">{formatCurrency(totals.taxAmount)}</span>
+              <span className="font-medium">{formatCurrency(data.totals.taxAmount)}</span>
             </div>
             <Separator />
             <div className="flex justify-between font-bold text-lg">
               <span>TOTAL:</span>
-              <span>{formatCurrency(totals.grandTotal)}</span>
+              <span>₹ {formatCurrency(data.totals.grandTotal)}</span>
             </div>
           </div>
         </div>
@@ -194,32 +343,73 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
         {/* Terms */}
         <div className="mb-6">
           <h3 className="font-bold text-sm uppercase text-gray-800 mb-3">TERMS:</h3>
-          <ul className="text-sm space-y-2 text-gray-700">
+          <div className="space-y-2">
             {defaultTerms.map((term, index) => (
-              <li key={index} className="leading-relaxed">{term}</li>
+              <Textarea
+                key={index}
+                value={term}
+                onChange={(e) => updateTerms(index, e.target.value)}
+                className="text-sm text-gray-700 bg-transparent border-dashed min-h-[36px] resize-none leading-relaxed"
+              />
             ))}
-          </ul>
+          </div>
         </div>
 
         {/* Payment Terms */}
         <div className="mb-6">
           <h3 className="font-bold text-sm uppercase text-gray-800 mb-3">PAYMENT TERMS:</h3>
-          <ul className="text-sm space-y-1 text-gray-700">
+          <div className="space-y-2">
             {paymentTerms.map((term, index) => (
-              <li key={index}>{term}</li>
+              <Textarea
+                key={index}
+                value={term}
+                onChange={(e) => updatePaymentTerms(index, e.target.value)}
+                className="text-sm text-gray-700 bg-transparent border-dashed min-h-[32px] resize-none"
+              />
             ))}
-          </ul>
+          </div>
         </div>
 
         {/* Bank Details */}
         <div className="mb-6 bg-gray-50 p-4 rounded-lg">
           <h3 className="font-bold text-sm uppercase text-gray-800 mb-3">BANK DETAILS:</h3>
-          <div className="text-sm space-y-1 text-gray-700">
-            <p><span className="font-medium">Account Name:</span> LOOPIFY WORLD PVT LTD</p>
-            <p><span className="font-medium">Bank Name:</span> {defaultBankDetails.bankName}</p>
-            <p><span className="font-medium">Bank Account number:</span> {defaultBankDetails.accountNumber}</p>
-            <p><span className="font-medium">IFSC Code:</span> {defaultBankDetails.ifsc}</p>
-            <p><span className="font-medium">Branch:</span> {defaultBankDetails.branch}</p>
+          <div className="text-sm space-y-2 text-gray-700">
+            <div className="flex items-center gap-1">
+              <span className="font-medium whitespace-nowrap">Account Name:</span>
+              <span>LOOPIFY WORLD PVT LTD</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-medium whitespace-nowrap">Bank Name:</span>
+              <Input
+                value={defaultBankDetails.bankName}
+                onChange={(e) => updateBank('bankName', e.target.value)}
+                className="h-7 text-sm bg-transparent border-dashed"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-medium whitespace-nowrap">Account No:</span>
+              <Input
+                value={defaultBankDetails.accountNumber}
+                onChange={(e) => updateBank('accountNumber', e.target.value)}
+                className="h-7 text-sm bg-transparent border-dashed"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-medium whitespace-nowrap">IFSC Code:</span>
+              <Input
+                value={defaultBankDetails.ifsc}
+                onChange={(e) => updateBank('ifsc', e.target.value)}
+                className="h-7 text-sm bg-transparent border-dashed"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-medium whitespace-nowrap">Branch:</span>
+              <Input
+                value={defaultBankDetails.branch}
+                onChange={(e) => updateBank('branch', e.target.value)}
+                className="h-7 text-sm bg-transparent border-dashed"
+              />
+            </div>
           </div>
         </div>
 
