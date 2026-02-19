@@ -5,13 +5,12 @@ import { InvoicePreview } from '@/components/invoice/InvoicePreview';
 import { InvoiceActions } from '@/components/invoice/InvoiceActions';
 import { AddShippingDialog } from '@/components/invoice/AddShippingDialog';
 import { useInvoice } from '@/hooks/useInvoice';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileText, AlertCircle, Undo2, CheckCircle2, ArrowLeft, PenLine } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { InvoiceData, InvoiceLineItem } from '@/types/invoice';
 import { Badge } from '@/components/ui/badge';
 
@@ -92,8 +91,6 @@ export default function InvoiceGenerator() {
     });
   };
 
-  const formatCurrency = (amount: number) =>
-    amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div className="min-h-screen bg-background">
@@ -187,57 +184,27 @@ export default function InvoiceGenerator() {
           </div>
         )}
 
-        {/* Pre-send Review Panel */}
+        {/* Pre-send Review Panel — full invoice preview */}
         {invoiceData && !loading && showReview && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
-                  Review Before Generating PDF
-                </CardTitle>
-                <CardDescription>Confirm the details below before downloading.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase font-medium">Client / Billing</p>
-                      <p className="text-sm font-semibold mt-1">{invoiceData.invoice.contactPerson || 'N/A'}</p>
-                      <p className="text-xs text-muted-foreground whitespace-pre-line">{invoiceData.invoice.billingAddress || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase font-medium">Invoice</p>
-                      <p className="text-sm">{invoiceData.invoice.invoiceNumber} — {invoiceData.invoice.invoiceDate}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase font-medium">Line Items</p>
-                      <p className="text-sm">{invoiceData.items.length} item(s), {invoiceData.items.reduce((s, i) => s + (i.qty_sold || 0), 0)} total qty</p>
-                    </div>
-                    <Separator />
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Taxable:</span>
-                        <span>₹ {formatCurrency(invoiceData.totals.taxableAmount)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Tax:</span>
-                        <span>₹ {formatCurrency(invoiceData.totals.taxAmount)}</span>
-                      </div>
-                      <Separator />
-                      <div className="flex justify-between font-bold text-lg">
-                        <span>Grand Total:</span>
-                        <span>₹ {formatCurrency(invoiceData.totals.grandTotal)}</span>
-                      </div>
-                    </div>
-                  </div>
+          <div className="space-y-4">
+            {/* Review header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+                <div>
+                  <h2 className="text-xl font-semibold">Review Before Generating PDF</h2>
+                  <p className="text-sm text-muted-foreground">This is exactly what will be downloaded. Editing is disabled.</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <div className="flex justify-between">
+            {/* Full read-only invoice preview */}
+            <div className="overflow-auto">
+              <InvoicePreview data={invoiceData} onUpdate={() => {}} readOnly />
+            </div>
+
+            {/* Action bar */}
+            <div className="flex justify-between pt-2">
               <Button variant="outline" onClick={() => setShowReview(false)}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Back to Edit
               </Button>
