@@ -10,8 +10,9 @@ export function useInvoice() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchInvoice = useCallback(async (invoiceNumber: string) => {
-    if (!invoiceNumber.trim()) {
+  const fetchInvoice = useCallback(async (invoiceNumber: string | number) => {
+    const invoiceStr = String(invoiceNumber ?? '').trim();
+    if (!invoiceStr) {
       setError('Please enter an invoice number');
       return;
     }
@@ -21,7 +22,7 @@ export function useInvoice() {
     setInvoiceData(null);
 
     try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/invoicedata?invoiceNumber=${encodeURIComponent(invoiceNumber)}`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/invoicedata?invoiceNumber=${encodeURIComponent(invoiceStr)}`, {
         headers: {
           apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`
