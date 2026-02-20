@@ -326,12 +326,14 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                             className="h-7 text-sm font-bold bg-transparent border-dashed mb-1"
                           />
                           {configItems.length > 0 && (
-                            <Textarea
-                              value={typeof item.gh_config === 'string' ? item.gh_config : ''}
-                              onChange={(e) => updateItem(index, 'gh_config', e.target.value)}
-                              className="text-xs text-gray-600 bg-transparent border-dashed min-h-[40px] resize-none"
-                              placeholder="Item config..."
-                            />
+                            <ul className="mt-1 space-y-0.5">
+                              {configItems.map((ci, ci_idx) => (
+                                <li key={ci_idx} className="text-xs text-gray-600 flex gap-1">
+                                  <span>•</span>
+                                  <span>{ci}</span>
+                                </li>
+                              ))}
+                            </ul>
                           )}
                         </>
                       )}
