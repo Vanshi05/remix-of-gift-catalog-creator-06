@@ -1,6 +1,9 @@
 import { useState, useCallback } from 'react';
 import { InvoiceData, RecentInvoice } from '@/types/invoice';
 
+const SUPABASE_URL = 'https://dpwdnuqvnclbjarowgmv.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwd2RudXF2bmNsYmphcm93Z212Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMTM2OTMsImV4cCI6MjA4NDU4OTY5M30.m2GnYhntrBdwTmK3rp0svWysTEMdss8g_KgqpN7_usg';
+
 export function useInvoice() {
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
   const [recentInvoices, setRecentInvoices] = useState<RecentInvoice[]>([]);
@@ -18,7 +21,12 @@ export function useInvoice() {
     setInvoiceData(null);
 
     try {
-      const response = await fetch(`/api/invoice/data?invoiceNumber=${encodeURIComponent(invoiceNumber)}`);
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/invoicedata?invoiceNumber=${encodeURIComponent(invoiceNumber)}`, {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      });
       const result = await response.json();
 
       if (!result.success) {
