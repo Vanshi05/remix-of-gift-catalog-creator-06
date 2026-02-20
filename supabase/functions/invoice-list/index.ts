@@ -44,11 +44,12 @@ serve(async (req) => {
 
     const invoices = (data.records || [])
       .map((record: any) => ({
+        srNo: record.fields["Sr No"] || "",
         invoiceNumber: record.fields.sales_invoice_number || record.fields["Invoice Number"] || "",
         invoiceDate: record.fields["Invoice Date"] || record.fields.invoice_date || "",
         billingAddress: record.fields["Billing Address"] || record.fields.billing_address || "",
       }))
-      .filter((inv: any) => inv.invoiceNumber);
+      .filter((inv: any) => inv.srNo);
 
     return new Response(
       JSON.stringify({ success: true, data: invoices }),

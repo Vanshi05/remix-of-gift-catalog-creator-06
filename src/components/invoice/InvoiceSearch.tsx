@@ -26,6 +26,8 @@ export function InvoiceSearch({ onSearch, recentInvoices, loading }: InvoiceSear
     onSearch(value);
   };
 
+
+
   return (
     <div className="space-y-4">
       <form onSubmit={handleSubmit} className="flex gap-3">
@@ -56,8 +58,8 @@ export function InvoiceSearch({ onSearch, recentInvoices, loading }: InvoiceSear
             </SelectTrigger>
             <SelectContent>
               {recentInvoices.map((inv) => (
-                <SelectItem key={inv.invoiceNumber} value={inv.invoiceNumber}>
-                  {inv.invoiceNumber} - {inv.invoiceDate}
+                <SelectItem key={inv.srNo} value={inv.srNo}>
+                  {inv.srNo} - {inv.invoiceDate}
                 </SelectItem>
               ))}
             </SelectContent>

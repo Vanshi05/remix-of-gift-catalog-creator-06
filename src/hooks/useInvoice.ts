@@ -44,7 +44,12 @@ export function useInvoice() {
 
   const fetchRecentInvoices = useCallback(async () => {
     try {
-      const response = await fetch('/api/invoice/list');
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/invoice-list`, {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      });
       const result = await response.json();
 
       if (result.success) {

@@ -51,6 +51,7 @@ export interface InvoiceData {
 }
 
 export interface RecentInvoice {
+  srNo: string;
   invoiceNumber: string;
   invoiceDate: string;
   billingAddress: string;
