@@ -326,7 +326,7 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                             className="h-7 text-sm font-bold bg-transparent border-dashed mb-1"
                           />
                           <Textarea
-                            value={typeof item.gh_config === 'string' ? item.gh_config : ''}
+                            value={typeof item.gh_config === 'string' ? item.gh_config : Array.isArray(item.gh_config) ? (item.gh_config as unknown as string[]).join(' ') : ''}
                             onChange={(e) => updateItem(index, 'gh_config', e.target.value)}
                             className="text-xs text-gray-600 bg-transparent border-dashed min-h-[40px] resize-none mt-1"
                             placeholder="Item config e.g. (1) Item Name (2) Another Item..."
