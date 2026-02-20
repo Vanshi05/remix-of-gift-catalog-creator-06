@@ -12,6 +12,7 @@ import loopifyLogo from '@/assets/loopify-logo.jpg';
 interface InvoicePreviewProps {
   data: InvoiceData;
   onUpdate: (data: InvoiceData) => void;
+  readOnly?: boolean;
 }
 
 const formatCurrency = (amount: number) =>
@@ -32,8 +33,17 @@ function recalcTotals(items: InvoiceLineItem[]) {
   };
 }
 
+// Plain text display components for read-only mode
+const ROText = ({ value, className = '' }: { value: string | number | undefined; className?: string }) => (
+  <span className={`text-sm text-gray-800 ${className}`}>{value ?? ''}</span>
+);
+
+const ROBlock = ({ value, className = '' }: { value: string | undefined; className?: string }) => (
+  <p className={`text-sm text-gray-800 whitespace-pre-line leading-relaxed ${className}`}>{value ?? ''}</p>
+);
+
 export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
-  ({ data, onUpdate }, ref) => {
+  ({ data, onUpdate, readOnly = false }, ref) => {
     const { invoice, items, seller, bankDetails, terms } = data;
 
     const defaultSeller = seller || {
@@ -63,7 +73,6 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
       "50% balance payment before dispatch"
     ];
 
-    // Helpers to push updates
     const updateInvoice = useCallback((field: string, value: string) => {
       onUpdate({ ...data, invoice: { ...data.invoice, [field]: value } });
     }, [data, onUpdate]);
@@ -113,7 +122,6 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
       onUpdate({ ...data, seller: { ...defaultSeller, ...data.seller, [field]: value } });
     }, [data, defaultSeller, onUpdate]);
 
-    // Parse gh_config items
     const parseConfigItems = (config: string | string[] | undefined): string[] => {
       if (!config) return [];
       const configStr = typeof config === 'string' ? config : config.join(' ');
@@ -124,28 +132,38 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
     return (
       <Card ref={ref} className="p-8 bg-white text-black print:shadow-none" id="invoice-preview">
         {/* Editable hint */}
-        <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 print:hidden">
-          ✏️ All fields are editable. Click any text to modify. Changes recalculate totals automatically.
-        </div>
+        {!readOnly && (
+          <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 print:hidden">
+            ✏️ All fields are editable. Click any text to modify. Changes recalculate totals automatically.
+          </div>
+        )}
 
         {/* Header */}
         <div className="flex justify-between items-start mb-6">
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm">
               <span className="font-semibold whitespace-nowrap">Invoice Number:</span>
-              <Input
-                value={invoice.invoiceNumber}
-                onChange={(e) => updateInvoice('invoiceNumber', e.target.value)}
-                className="h-7 text-sm w-[180px] bg-transparent border-dashed"
-              />
+              {readOnly ? (
+                <ROText value={invoice.invoiceNumber} className="font-medium" />
+              ) : (
+                <Input
+                  value={invoice.invoiceNumber}
+                  onChange={(e) => updateInvoice('invoiceNumber', e.target.value)}
+                  className="h-7 text-sm w-[180px] bg-transparent border-dashed"
+                />
+              )}
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span className="font-semibold whitespace-nowrap">Invoice Date:</span>
-              <Input
-                value={invoice.invoiceDate}
-                onChange={(e) => updateInvoice('invoiceDate', e.target.value)}
-                className="h-7 text-sm w-[180px] bg-transparent border-dashed"
-              />
+              {readOnly ? (
+                <ROText value={invoice.invoiceDate} className="font-medium" />
+              ) : (
+                <Input
+                  value={invoice.invoiceDate}
+                  onChange={(e) => updateInvoice('invoiceDate', e.target.value)}
+                  className="h-7 text-sm w-[180px] bg-transparent border-dashed"
+                />
+              )}
             </div>
           </div>
           <img src={loopifyLogo} alt="Loopify Logo" className="h-16 object-contain" />
@@ -163,70 +181,100 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
           {/* Seller */}
           <div>
             <h3 className="font-semibold text-sm uppercase text-gray-600 mb-2">Seller:</h3>
-            <div className="space-y-2 text-sm">
-              <Input
-                value={defaultSeller.name}
-                onChange={(e) => updateSeller('name', e.target.value)}
-                className="h-7 text-sm font-bold bg-transparent border-dashed"
-              />
-              <Textarea
-                value={defaultSeller.address}
-                onChange={(e) => updateSeller('address', e.target.value)}
-                className="text-sm text-gray-700 bg-transparent border-dashed min-h-[60px] resize-none"
-              />
-              <div className="flex items-center gap-1 text-gray-700">
-                <span>GST #:</span>
-                <Input
-                  value={defaultSeller.gst}
-                  onChange={(e) => updateSeller('gst', e.target.value)}
-                  className="h-7 text-sm bg-transparent border-dashed"
-                />
-              </div>
+            <div className="space-y-1 text-sm">
+              {readOnly ? (
+                <>
+                  <p className="font-bold text-gray-900">{defaultSeller.name}</p>
+                  <p className="text-gray-700 whitespace-pre-line leading-relaxed">{defaultSeller.address}</p>
+                  <p className="text-gray-700">GST #: {defaultSeller.gst}</p>
+                </>
+              ) : (
+                <>
+                  <Input
+                    value={defaultSeller.name}
+                    onChange={(e) => updateSeller('name', e.target.value)}
+                    className="h-7 text-sm font-bold bg-transparent border-dashed"
+                  />
+                  <Textarea
+                    value={defaultSeller.address}
+                    onChange={(e) => updateSeller('address', e.target.value)}
+                    className="text-sm text-gray-700 bg-transparent border-dashed min-h-[60px] resize-none"
+                  />
+                  <div className="flex items-center gap-1 text-gray-700">
+                    <span>GST #:</span>
+                    <Input
+                      value={defaultSeller.gst}
+                      onChange={(e) => updateSeller('gst', e.target.value)}
+                      className="h-7 text-sm bg-transparent border-dashed"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
           {/* Billing */}
           <div>
             <h3 className="font-semibold text-sm uppercase text-gray-600 mb-1">Billing Address:</h3>
-            <Textarea
-              value={invoice.billingAddress || ''}
-              onChange={(e) => updateInvoice('billingAddress', e.target.value)}
-              className="text-sm text-gray-700 bg-transparent border-dashed min-h-[60px] resize-none mb-3"
-            />
-            <div className="space-y-2 text-sm">
+            {readOnly ? (
+              <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed mb-3">{invoice.billingAddress || ''}</p>
+            ) : (
+              <Textarea
+                value={invoice.billingAddress || ''}
+                onChange={(e) => updateInvoice('billingAddress', e.target.value)}
+                className="text-sm text-gray-700 bg-transparent border-dashed min-h-[60px] resize-none mb-3"
+              />
+            )}
+            <div className="space-y-1 text-sm">
               {invoice.gst && (
                 <div className="flex items-center gap-1 text-gray-700">
-                  <span className="whitespace-nowrap">GST IN:</span>
-                  <Input
-                    value={invoice.gst}
-                    onChange={(e) => updateInvoice('gst', e.target.value)}
-                    className="h-7 text-sm bg-transparent border-dashed"
-                  />
+                  <span className="whitespace-nowrap font-medium">GST IN:</span>
+                  {readOnly ? (
+                    <ROText value={invoice.gst} />
+                  ) : (
+                    <Input
+                      value={invoice.gst}
+                      onChange={(e) => updateInvoice('gst', e.target.value)}
+                      className="h-7 text-sm bg-transparent border-dashed"
+                    />
+                  )}
                 </div>
               )}
               <div className="flex items-center gap-1 text-gray-700">
-                <span className="whitespace-nowrap">Contact:</span>
-                <Input
-                  value={invoice.contactPerson || ''}
-                  onChange={(e) => updateInvoice('contactPerson', e.target.value)}
-                  className="h-7 text-sm bg-transparent border-dashed"
-                />
+                <span className="whitespace-nowrap font-medium">Contact:</span>
+                {readOnly ? (
+                  <ROText value={invoice.contactPerson} />
+                ) : (
+                  <Input
+                    value={invoice.contactPerson || ''}
+                    onChange={(e) => updateInvoice('contactPerson', e.target.value)}
+                    className="h-7 text-sm bg-transparent border-dashed"
+                  />
+                )}
               </div>
               <div className="flex items-center gap-1 text-gray-700">
-                <span className="whitespace-nowrap">Mobile:</span>
-                <Input
-                  value={invoice.mobile || ''}
-                  onChange={(e) => updateInvoice('mobile', e.target.value)}
-                  className="h-7 text-sm bg-transparent border-dashed"
-                />
+                <span className="whitespace-nowrap font-medium">Mobile:</span>
+                {readOnly ? (
+                  <ROText value={invoice.mobile} />
+                ) : (
+                  <Input
+                    value={invoice.mobile || ''}
+                    onChange={(e) => updateInvoice('mobile', e.target.value)}
+                    className="h-7 text-sm bg-transparent border-dashed"
+                  />
+                )}
               </div>
               <div className="flex items-center gap-1 text-gray-700">
-                <span className="whitespace-nowrap">Email:</span>
-                <Input
-                  value={invoice.email || ''}
-                  onChange={(e) => updateInvoice('email', e.target.value)}
-                  className="h-7 text-sm bg-transparent border-dashed"
-                />
+                <span className="whitespace-nowrap font-medium">Email:</span>
+                {readOnly ? (
+                  <ROText value={invoice.email} />
+                ) : (
+                  <Input
+                    value={invoice.email || ''}
+                    onChange={(e) => updateInvoice('email', e.target.value)}
+                    className="h-7 text-sm bg-transparent border-dashed"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -243,7 +291,7 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                 <TableHead className="text-center font-semibold text-black w-[70px]">GST %</TableHead>
                 <TableHead className="text-center font-semibold text-black w-[70px]">Qty</TableHead>
                 <TableHead className="text-center font-semibold text-black w-[110px]">Amount (₹)</TableHead>
-                <TableHead className="w-10 print:hidden" />
+                {!readOnly && <TableHead className="w-10 print:hidden" />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -256,67 +304,99 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                   <TableRow key={item.id || index} className="border-b">
                     <TableCell className="text-center align-top text-sm">{index + 1}</TableCell>
                     <TableCell className="align-top">
-                      <Input
-                        value={item.gift_hamper_name}
-                        onChange={(e) => updateItem(index, 'gift_hamper_name', e.target.value)}
-                        className="h-7 text-sm font-bold bg-transparent border-dashed mb-1"
-                      />
-                      {configItems.length > 0 && (
-                        <Textarea
-                          value={typeof item.gh_config === 'string' ? item.gh_config : ''}
-                          onChange={(e) => updateItem(index, 'gh_config', e.target.value)}
-                          className="text-xs text-gray-600 bg-transparent border-dashed min-h-[40px] resize-none"
-                          placeholder="Item config..."
+                      {readOnly ? (
+                        <>
+                          <p className="text-sm font-bold text-gray-900 mb-1">{item.gift_hamper_name}</p>
+                          {configItems.length > 0 && (
+                            <ul className="mt-1 space-y-0.5">
+                              {configItems.map((ci, ci_idx) => (
+                                <li key={ci_idx} className="text-xs text-gray-600 flex gap-1">
+                                  <span>•</span>
+                                  <span>{ci}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <Input
+                            value={item.gift_hamper_name}
+                            onChange={(e) => updateItem(index, 'gift_hamper_name', e.target.value)}
+                            className="h-7 text-sm font-bold bg-transparent border-dashed mb-1"
+                          />
+                          <Textarea
+                            value={typeof item.gh_config === 'string' ? item.gh_config : Array.isArray(item.gh_config) ? (item.gh_config as unknown as string[]).join(' ') : ''}
+                            onChange={(e) => updateItem(index, 'gh_config', e.target.value)}
+                            className="text-xs text-gray-600 bg-transparent border-dashed min-h-[40px] resize-none mt-1"
+                            placeholder="Item config e.g. (1) Item Name (2) Another Item..."
+                          />
+                        </>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center align-top">
+                      {readOnly ? (
+                        <span className="text-sm">{formatCurrency(item.pre_tax_price || 0)}</span>
+                      ) : (
+                        <Input
+                          type="number"
+                          value={item.pre_tax_price}
+                          onChange={(e) => updateItem(index, 'pre_tax_price', parseFloat(e.target.value) || 0)}
+                          className="h-7 text-sm text-center bg-transparent border-dashed w-[90px]"
                         />
                       )}
                     </TableCell>
                     <TableCell className="text-center align-top">
-                      <Input
-                        type="number"
-                        value={item.pre_tax_price}
-                        onChange={(e) => updateItem(index, 'pre_tax_price', parseFloat(e.target.value) || 0)}
-                        className="h-7 text-sm text-center bg-transparent border-dashed w-[90px]"
-                      />
+                      {readOnly ? (
+                        <span className="text-sm">{item.gst}%</span>
+                      ) : (
+                        <Input
+                          type="number"
+                          value={item.gst}
+                          onChange={(e) => updateItem(index, 'gst', parseFloat(e.target.value) || 0)}
+                          className="h-7 text-sm text-center bg-transparent border-dashed w-[60px]"
+                        />
+                      )}
                     </TableCell>
                     <TableCell className="text-center align-top">
-                      <Input
-                        type="number"
-                        value={item.gst}
-                        onChange={(e) => updateItem(index, 'gst', parseFloat(e.target.value) || 0)}
-                        className="h-7 text-sm text-center bg-transparent border-dashed w-[60px]"
-                      />
-                    </TableCell>
-                    <TableCell className="text-center align-top">
-                      <Input
-                        type="number"
-                        value={item.qty_sold}
-                        onChange={(e) => updateItem(index, 'qty_sold', parseInt(e.target.value) || 1)}
-                        className="h-7 text-sm text-center bg-transparent border-dashed w-[60px]"
-                      />
+                      {readOnly ? (
+                        <span className="text-sm">{item.qty_sold}</span>
+                      ) : (
+                        <Input
+                          type="number"
+                          value={item.qty_sold}
+                          onChange={(e) => updateItem(index, 'qty_sold', parseInt(e.target.value) || 1)}
+                          className="h-7 text-sm text-center bg-transparent border-dashed w-[60px]"
+                        />
+                      )}
                     </TableCell>
                     <TableCell className="text-center font-medium align-top text-sm">
                       {formatCurrency(amount)}
                     </TableCell>
-                    <TableCell className="align-top print:hidden">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => removeItem(index)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
+                    {!readOnly && (
+                      <TableCell className="align-top print:hidden">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => removeItem(index)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}
             </TableBody>
           </Table>
-          <div className="p-2 print:hidden">
-            <Button variant="ghost" size="sm" onClick={addItem} className="text-xs">
-              <Plus className="h-3.5 w-3.5 mr-1" /> Add Line Item
-            </Button>
-          </div>
+          {!readOnly && (
+            <div className="p-2 print:hidden">
+              <Button variant="ghost" size="sm" onClick={addItem} className="text-xs">
+                <Plus className="h-3.5 w-3.5 mr-1" /> Add Line Item
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Totals */}
@@ -343,72 +423,104 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
         {/* Terms */}
         <div className="mb-6">
           <h3 className="font-bold text-sm uppercase text-gray-800 mb-3">TERMS:</h3>
-          <div className="space-y-2">
-            {defaultTerms.map((term, index) => (
-              <Textarea
-                key={index}
-                value={term}
-                onChange={(e) => updateTerms(index, e.target.value)}
-                className="text-sm text-gray-700 bg-transparent border-dashed min-h-[36px] resize-none leading-relaxed"
-              />
-            ))}
-          </div>
+          {readOnly ? (
+            <ol className="list-decimal list-inside space-y-2">
+              {defaultTerms.map((term, index) => (
+                <li key={index} className="text-sm text-gray-700 leading-relaxed">{term}</li>
+              ))}
+            </ol>
+          ) : (
+            <div className="space-y-2">
+              {defaultTerms.map((term, index) => (
+                <Textarea
+                  key={index}
+                  value={term}
+                  onChange={(e) => updateTerms(index, e.target.value)}
+                  className="text-sm text-gray-700 bg-transparent border-dashed min-h-[36px] resize-none leading-relaxed"
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Payment Terms */}
         <div className="mb-6">
           <h3 className="font-bold text-sm uppercase text-gray-800 mb-3">PAYMENT TERMS:</h3>
-          <div className="space-y-2">
-            {paymentTerms.map((term, index) => (
-              <Textarea
-                key={index}
-                value={term}
-                onChange={(e) => updatePaymentTerms(index, e.target.value)}
-                className="text-sm text-gray-700 bg-transparent border-dashed min-h-[32px] resize-none"
-              />
-            ))}
-          </div>
+          {readOnly ? (
+            <ol className="list-decimal list-inside space-y-1">
+              {paymentTerms.map((term, index) => (
+                <li key={index} className="text-sm text-gray-700 leading-relaxed">{term}</li>
+              ))}
+            </ol>
+          ) : (
+            <div className="space-y-2">
+              {paymentTerms.map((term, index) => (
+                <Textarea
+                  key={index}
+                  value={term}
+                  onChange={(e) => updatePaymentTerms(index, e.target.value)}
+                  className="text-sm text-gray-700 bg-transparent border-dashed min-h-[32px] resize-none"
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Bank Details */}
         <div className="mb-6 bg-gray-50 p-4 rounded-lg">
           <h3 className="font-bold text-sm uppercase text-gray-800 mb-3">BANK DETAILS:</h3>
-          <div className="text-sm space-y-2 text-gray-700">
+          <div className="text-sm space-y-1 text-gray-700">
             <div className="flex items-center gap-1">
               <span className="font-medium whitespace-nowrap">Account Name:</span>
               <span>LOOPIFY WORLD PVT LTD</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="font-medium whitespace-nowrap">Bank Name:</span>
-              <Input
-                value={defaultBankDetails.bankName}
-                onChange={(e) => updateBank('bankName', e.target.value)}
-                className="h-7 text-sm bg-transparent border-dashed"
-              />
+              {readOnly ? (
+                <ROText value={defaultBankDetails.bankName} />
+              ) : (
+                <Input
+                  value={defaultBankDetails.bankName}
+                  onChange={(e) => updateBank('bankName', e.target.value)}
+                  className="h-7 text-sm bg-transparent border-dashed"
+                />
+              )}
             </div>
             <div className="flex items-center gap-1">
               <span className="font-medium whitespace-nowrap">Account No:</span>
-              <Input
-                value={defaultBankDetails.accountNumber}
-                onChange={(e) => updateBank('accountNumber', e.target.value)}
-                className="h-7 text-sm bg-transparent border-dashed"
-              />
+              {readOnly ? (
+                <ROText value={defaultBankDetails.accountNumber} />
+              ) : (
+                <Input
+                  value={defaultBankDetails.accountNumber}
+                  onChange={(e) => updateBank('accountNumber', e.target.value)}
+                  className="h-7 text-sm bg-transparent border-dashed"
+                />
+              )}
             </div>
             <div className="flex items-center gap-1">
               <span className="font-medium whitespace-nowrap">IFSC Code:</span>
-              <Input
-                value={defaultBankDetails.ifsc}
-                onChange={(e) => updateBank('ifsc', e.target.value)}
-                className="h-7 text-sm bg-transparent border-dashed"
-              />
+              {readOnly ? (
+                <ROText value={defaultBankDetails.ifsc} />
+              ) : (
+                <Input
+                  value={defaultBankDetails.ifsc}
+                  onChange={(e) => updateBank('ifsc', e.target.value)}
+                  className="h-7 text-sm bg-transparent border-dashed"
+                />
+              )}
             </div>
             <div className="flex items-center gap-1">
               <span className="font-medium whitespace-nowrap">Branch:</span>
-              <Input
-                value={defaultBankDetails.branch}
-                onChange={(e) => updateBank('branch', e.target.value)}
-                className="h-7 text-sm bg-transparent border-dashed"
-              />
+              {readOnly ? (
+                <ROText value={defaultBankDetails.branch} />
+              ) : (
+                <Input
+                  value={defaultBankDetails.branch}
+                  onChange={(e) => updateBank('branch', e.target.value)}
+                  className="h-7 text-sm bg-transparent border-dashed"
+                />
+              )}
             </div>
           </div>
         </div>
