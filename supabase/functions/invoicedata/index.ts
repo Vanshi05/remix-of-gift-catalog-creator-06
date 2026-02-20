@@ -64,9 +64,15 @@ serve(async (req) => {
     const saleFields = saleRecord.fields;
     const saleRecordId = saleRecord.id;
 
-    // Fetch Sale_LI (line items)
+    // Use so_id display value (e.g. 'RSM | 2526-0088') to link to Sale_LI
+    const soId = saleFields.so_id || saleFields["so_id"] || "";
+    if (!soId) {
+      console.warn("Warning: so_id not found in Sale record for Sr No:", invoiceNumber);
+    }
+
+    // Fetch Sale_LI (line items) linked via so_id display value
     const liTableName = encodeURIComponent("Sale_LI");
-    const liFormula = encodeURIComponent(`FIND("${saleRecordId}", ARRAYJOIN({so}))`);
+    const liFormula = encodeURIComponent(`FIND("${soId}", ARRAYJOIN({so}))`);
     const liUrl = `https://api.airtable.com/v0/${baseId}/${liTableName}?filterByFormula=${liFormula}`;
 
     const liResponse = await fetch(liUrl, {
