@@ -31,9 +31,9 @@ serve(async (req) => {
       );
     }
 
-    // Fetch Sale record
+    // Fetch Sale record by Sr No
     const saleTableName = encodeURIComponent("Sale");
-    const saleFormula = encodeURIComponent(`{sales_invoice_number}="${invoiceNumber}"`);
+    const saleFormula = encodeURIComponent(`{Sr No}="${invoiceNumber}"`);
     const saleUrl = `https://api.airtable.com/v0/${baseId}/${saleTableName}?filterByFormula=${saleFormula}&maxRecords=1`;
 
     console.log("Fetching invoice:", invoiceNumber);
@@ -90,7 +90,7 @@ serve(async (req) => {
       pre_tax_price: record.fields.pre_tax_price || record.fields["Pre GST Price"] || 0,
       qty_sold: record.fields.qty_sold || record.fields["Qty"] || 1,
       gst: record.fields.gst || record.fields["GST"] || 0,
-      gh_config: record.fields.gh_config || record.fields["Gift Hamper Config"] || "",
+      gh_config: record.fields.fancy_config || record.fields.gh_config || record.fields["Gift Hamper Config"] || "",
     }));
 
     // Calculate totals
