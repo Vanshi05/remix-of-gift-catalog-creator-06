@@ -1,6 +1,6 @@
 import { Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer';
 import { InvoiceData } from '@/types/invoice';
-import loopifyLogo from '@/assets/loopify-logo.jpg';
+import loopifyLogo from '@/assets/loopify-logo.jpeg';
 
 // Register fonts for professional look
 Font.register({
