@@ -90,7 +90,8 @@ serve(async (req) => {
       pre_tax_price: record.fields.pre_tax_price || record.fields["Pre GST Price"] || 0,
       qty_sold: record.fields.qty_sold || record.fields["Qty"] || 1,
       gst: record.fields.gst || record.fields["GST"] || 0,
-      gh_config: record.fields.fancy_config || record.fields.gh_config || record.fields["Gift Hamper Config"] || "",
+      // fancy_name from Product table (via lookup in Sale_LI), fallback to legacy fields
+      gh_config: record.fields.fancy_name || record.fields["fancy_name"] || record.fields.fancy_config || record.fields.gh_config || record.fields["Gift Hamper Config"] || "",
     }));
 
     // Calculate totals
@@ -142,6 +143,7 @@ serve(async (req) => {
         data: {
           invoice: {
             invoiceNumber: saleFields.sales_invoice_number || saleFields["Invoice Number"] || invoiceNumber,
+            srNo: saleFields["Sr No"] || saleFields.sr_no || invoiceNumber,
             invoiceDate: saleFields["Invoice Date"] || saleFields.invoice_date || "",
             billingAddress: saleFields["Billing Address"] || saleFields.billing_address || "",
             gst: saleFields["GST"] || saleFields.gst || "",
