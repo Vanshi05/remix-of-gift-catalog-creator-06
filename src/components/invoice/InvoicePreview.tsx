@@ -166,7 +166,7 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
               )}
             </div>
           </div>
-          <img src={loopifyLogo} alt="Loopify Logo" className="h-16 object-contain" />
+          <img src={loopifyLogo} alt="Loopify Logo" className="h-16 object-contain"  />
         </div>
 
         {/* Title */}
