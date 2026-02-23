@@ -89,51 +89,58 @@ serve(async (req) => {
     }
 
     const liData = await liResponse.json();
-    const lineItems = (liData.records || []).map((record: any) => ({
-      id: record.id,
-      gift_hamper_name: record.fields.gift_hamper_name || record.fields["Gift Hamper Name"] || "",
-      mrp: record.fields.mrp || record.fields["MRP (Selling Price)"] || 0,
-      pre_tax_price: record.fields.pre_tax_price || record.fields["Pre GST Price"] || 0,
-      qty_sold: record.fields.qty_sold || record.fields["Qty"] || 1,
-      gst: record.fields.gst || record.fields["GST"] || 0,
-      gh_config: "", // will be populated from Gift Hamper table
-    }));
-
-    // Fetch fancy_config from Gift Hamper table (separate base)
-    const ghBaseId = Deno.env.get("AIRTABLE_BASE_ID");
-    const ghApiKey = Deno.env.get("AIRTABLE_TOKEN");
-
-    if (ghBaseId && ghApiKey) {
-      const uniqueNames = [...new Set(lineItems.map((item: any) => item.gift_hamper_name).filter(Boolean))];
+    const lineItems = (liData.records || []).map((record: any) => {
+      // gh_config is a lookup field in Sale_LI that returns an array from Gift Hamper table
+      const ghConfigRaw = record.fields.gh_config || record.fields["gh_config"] || "";
+      const ghConfig = Array.isArray(ghConfigRaw) ? ghConfigRaw.join("\n") : (ghConfigRaw || "");
       
-      for (const hamperName of uniqueNames) {
-        try {
-          const ghTableName = encodeURIComponent("Gift Hamper");
-          const ghFormula = encodeURIComponent(`{Gift Hamper Name}="${hamperName}"`);
-          const ghUrl = `https://api.airtable.com/v0/${ghBaseId}/${ghTableName}?filterByFormula=${ghFormula}&maxRecords=1&fields%5B%5D=fancy_config&fields%5B%5D=Gift%20Hamper%20Name`;
+      return {
+        id: record.id,
+        gift_hamper_name: record.fields.gift_hamper_name || record.fields["Gift Hamper Name"] || "",
+        mrp: record.fields.mrp || record.fields["MRP (Selling Price)"] || 0,
+        pre_tax_price: record.fields.pre_tax_price || record.fields["Pre GST Price"] || 0,
+        qty_sold: record.fields.qty_sold || record.fields["Qty"] || 1,
+        gst: record.fields.gst || record.fields["GST"] || 0,
+        gh_config: ghConfig,
+      };
+    });
 
-          const ghResponse = await fetch(ghUrl, {
-            headers: { Authorization: `Bearer ${ghApiKey}` },
-          });
+    // If any line items still have empty gh_config, try fetching fancy_config from Gift Hamper table (separate base)
+    const itemsMissingConfig = lineItems.filter((item: any) => !item.gh_config && item.gift_hamper_name);
+    
+    if (itemsMissingConfig.length > 0) {
+      const ghBaseId = Deno.env.get("AIRTABLE_BASE_ID");
+      const ghApiKey = Deno.env.get("AIRTABLE_TOKEN");
 
-          if (ghResponse.ok) {
-            const ghData = await ghResponse.json();
-            if (ghData.records && ghData.records.length > 0) {
-              const fancyConfig = ghData.records[0].fields.fancy_config || "";
-              // Apply to all matching line items
-              lineItems.forEach((item: any) => {
-                if (item.gift_hamper_name === hamperName) {
-                  item.gh_config = fancyConfig;
-                }
-              });
+      if (ghBaseId && ghApiKey) {
+        const uniqueNames = [...new Set(itemsMissingConfig.map((item: any) => item.gift_hamper_name))];
+        
+        for (const hamperName of uniqueNames) {
+          try {
+            const ghTableName = encodeURIComponent("Gift Hamper");
+            const ghFormula = encodeURIComponent(`{Gift Hamper Name}="${hamperName}"`);
+            const ghUrl = `https://api.airtable.com/v0/${ghBaseId}/${ghTableName}?filterByFormula=${ghFormula}&maxRecords=1&fields%5B%5D=fancy_config&fields%5B%5D=Gift%20Hamper%20Name`;
+
+            const ghResponse = await fetch(ghUrl, {
+              headers: { Authorization: `Bearer ${ghApiKey}` },
+            });
+
+            if (ghResponse.ok) {
+              const ghData = await ghResponse.json();
+              if (ghData.records && ghData.records.length > 0) {
+                const fancyConfig = ghData.records[0].fields.fancy_config || "";
+                lineItems.forEach((item: any) => {
+                  if (item.gift_hamper_name === hamperName && !item.gh_config) {
+                    item.gh_config = fancyConfig;
+                  }
+                });
+              }
             }
+          } catch (e) {
+            console.warn("Failed to fetch fancy_config for:", hamperName, e);
           }
-        } catch (e) {
-          console.warn("Failed to fetch fancy_config for:", hamperName, e);
         }
       }
-    } else {
-      console.warn("Gift Hamper base not configured, skipping fancy_config lookup");
     }
 
     // Calculate totals
