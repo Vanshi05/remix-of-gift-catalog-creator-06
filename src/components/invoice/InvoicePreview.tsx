@@ -124,9 +124,13 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
 
     const parseConfigItems = (config: string | string[] | undefined): string[] => {
       if (!config) return [];
-      const configStr = typeof config === 'string' ? config : config.join(' ');
+      const configStr = typeof config === 'string' ? config : config.join('\n');
+      if (!configStr.trim()) return [];
+      // Try numbered format: (1) Item Name
       const matches = configStr.match(/\(\d+\)\s*[^|()]+/g);
-      return matches ? matches.map(m => m.trim()) : [];
+      if (matches && matches.length > 0) return matches.map(m => m.trim());
+      // Fallback: split by newlines and show each non-empty line
+      return configStr.split(/\n/).map(l => l.trim()).filter(Boolean);
     };
 
     return (
