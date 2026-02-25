@@ -37,6 +37,7 @@ serve(async (req) => {
     const saleUrl = `https://api.airtable.com/v0/${baseId}/${saleTableName}?filterByFormula=${saleFormula}&maxRecords=1`;
 
     console.log("Fetching invoice:", invoiceNumber);
+    console.log("Using baseId:", baseId?.substring(0, 8) + "...");
 
     const saleResponse = await fetch(saleUrl, {
       headers: { Authorization: `Bearer ${apiKey}` },
@@ -63,6 +64,22 @@ serve(async (req) => {
     const saleRecord = saleData.records[0];
     const saleFields = saleRecord.fields;
     const saleRecordId = saleRecord.id;
+
+    // Debug: log all field names and relevant values
+    console.log("Sale field names:", Object.keys(saleFields));
+    console.log("Billing Address fields:", JSON.stringify({
+      "Billing Address": saleFields["Billing Address"],
+      "billing_address": saleFields["billing_address"],
+      "SPOC Details": saleFields["SPOC Details"],
+      "spoc_details": saleFields["spoc_details"],
+      "Contact Person": saleFields["Contact Person"],
+      "contact_person": saleFields["contact_person"],
+      "Mobile": saleFields["Mobile"],
+      "mobile": saleFields["mobile"],
+      "Phone": saleFields["Phone"],
+      "Email": saleFields["Email"],
+      "email": saleFields["email"],
+    }));
 
     // Use so_id display value (e.g. 'RSM | 2526-0088') to link to Sale_LI
     const soId = saleFields.so_id || saleFields["so_id"] || "";
@@ -184,9 +201,11 @@ serve(async (req) => {
     }
 
     // Use individual fields if they exist, otherwise use parsed values
-    const finalContactPerson = saleFields["Contact Person"] || contactPerson;
-    const finalMobile = saleFields["Mobile"] || saleFields["Phone"] || mobile;
-    const finalEmail = saleFields["Email"] || email;
+    const finalContactPerson = saleFields["Contact Person"] || saleFields["contact_person"] || contactPerson;
+    const finalMobile = saleFields["Mobile"] || saleFields["mobile"] || saleFields["Phone"] || saleFields["phone"] || mobile;
+    const finalEmail = saleFields["Email"] || saleFields["email"] || email;
+
+    console.log("Final parsed contact info:", JSON.stringify({ finalContactPerson, finalMobile, finalEmail, billingAddress: saleFields["Billing Address"] || saleFields["billing_address"] || "" }));
 
     return new Response(
       JSON.stringify({
