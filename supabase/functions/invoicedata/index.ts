@@ -174,51 +174,50 @@ serve(async (req) => {
 
     const grandTotal = taxableAmount + taxAmount;
 
-    // Parse SPOC info from spoc_list or spoc_master_list (linked from Client)
-    const spocRaw = saleFields["spoc_list (from Client)"] || saleFields["spoc_master_list (from Client)"] || saleFields["SPOC Details"] || saleFields.spoc_details || "";
+    // Billing address comes from Sale_LI "Billing Address" field - collect from line items
+    let billingAddress = "";
+    for (const record of (liData.records || [])) {
+      const addr = record.fields["Billing Address"] || record.fields["billing_address"] || "";
+      if (addr) {
+        billingAddress = Array.isArray(addr) ? addr.join("\n") : addr;
+        break;
+      }
+    }
+
+    // SPOC Details comes from Sale record - parse contact, mobile, email
+    const spocRaw = saleFields["SPOC Details"] || saleFields["spoc_details"] || saleFields["spoc_list (from Client)"] || saleFields["spoc_master_list (from Client)"] || "";
     const spocDetails = Array.isArray(spocRaw) ? spocRaw.join("\n") : (spocRaw || "");
     let contactPerson = "";
     let mobile = "";
     let email = "";
 
     if (spocDetails) {
-      // Try labeled format: "Contact person: ...", "Mobile: ...", "Email: ..."
-      const contactMatch = spocDetails.match(/Contact\s*person:\s*(.+?)(?=\s*(?:Mobile|Email|$))/is);
-      if (contactMatch) contactPerson = contactMatch[1].trim();
+      const hasLabels = /contact\s*person:/i.test(spocDetails) || /mobile:/i.test(spocDetails) || /email:/i.test(spocDetails);
 
-      const mobileMatch = spocDetails.match(/Mobile:\s*([+\d][\d\s-]*)/i);
-      if (mobileMatch) mobile = mobileMatch[1].trim();
-
-      const emailMatch = spocDetails.match(/Email:\s*([^\s]+@[^\s]+)/i);
-      if (emailMatch) email = emailMatch[1].trim();
-
-      // Fallback: parse unlabeled lines
-      if (!contactPerson || !mobile || !email) {
+      if (hasLabels) {
+        // Labeled format: "Contact person: Name\nMobile: 12345\nEmail: x@y.com"
+        const contactMatch = spocDetails.match(/Contact\s*person:\s*(.+?)(?=\s*(?:Mobile:|Email:|$))/is);
+        if (contactMatch) contactPerson = contactMatch[1].trim();
+        const mobileMatch = spocDetails.match(/Mobile:\s*([+\d][\d\s-]*)/i);
+        if (mobileMatch) mobile = mobileMatch[1].trim();
+        const emailMatch = spocDetails.match(/Email:\s*([^\s]+@[^\s]+)/i);
+        if (emailMatch) email = emailMatch[1].trim();
+      } else {
+        // Simple format: "Name\nPhone\nEmail" on separate lines
         const lines = spocDetails.split(/\n/).map((l: string) => l.trim()).filter(Boolean);
         for (const line of lines) {
-          if (!contactPerson && !line.match(/^\d/) && !line.includes('@') && !line.match(/^[+]?\d/)) {
-            contactPerson = line;
-          }
-          if (!mobile) {
-            const phoneMatch = line.match(/([+]?\d[\d\s-]{9,})/);
-            if (phoneMatch) mobile = phoneMatch[1].trim();
-          }
           if (!email && line.includes('@')) {
-            email = line.trim();
+            email = line;
+          } else if (!mobile && line.match(/^[+]?\d[\d\s-]{6,}/)) {
+            mobile = line;
+          } else if (!contactPerson) {
+            contactPerson = line;
           }
         }
       }
     }
 
-    // Use individual fields if they exist, otherwise use parsed values
-    const finalContactPerson = saleFields["Contact Person"] || saleFields["contact_person"] || contactPerson;
-    const finalMobile = saleFields["Mobile"] || saleFields["mobile"] || saleFields["Phone"] || saleFields["phone"] || mobile;
-    const finalEmail = saleFields["Email"] || saleFields["email"] || email;
-
-    // Billing address: field is called "address" in Airtable
-    const billingAddress = saleFields["address"] || saleFields["Billing Address"] || saleFields["billing_address"] || "";
-
-    console.log("Final parsed contact info:", JSON.stringify({ finalContactPerson, finalMobile, finalEmail, billingAddress }));
+    console.log("Parsed SPOC:", JSON.stringify({ spocDetails, contactPerson, mobile, email, billingAddress }));
 
     return new Response(
       JSON.stringify({
