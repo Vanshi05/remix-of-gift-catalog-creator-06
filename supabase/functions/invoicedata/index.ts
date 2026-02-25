@@ -174,29 +174,39 @@ serve(async (req) => {
 
     const grandTotal = taxableAmount + taxAmount;
 
-    // Parse SPOC Details field to extract contact person, mobile, and email
-    const spocDetails = saleFields["SPOC Details"] || saleFields.spoc_details || "";
+    // Parse SPOC info from spoc_list or spoc_master_list (linked from Client)
+    const spocRaw = saleFields["spoc_list (from Client)"] || saleFields["spoc_master_list (from Client)"] || saleFields["SPOC Details"] || saleFields.spoc_details || "";
+    const spocDetails = Array.isArray(spocRaw) ? spocRaw.join("\n") : (spocRaw || "");
     let contactPerson = "";
     let mobile = "";
     let email = "";
 
     if (spocDetails) {
-      // Extract contact person name (after "Contact person:" and before "Mobile:")
-      const contactMatch = spocDetails.match(/Contact\s*person:\s*([^M]+?)(?:\s*Mobile:|$)/i);
-      if (contactMatch) {
-        contactPerson = contactMatch[1].trim();
-      }
-      
-      // Extract mobile number
-      const mobileMatch = spocDetails.match(/Mobile:\s*(\d+)/i);
-      if (mobileMatch) {
-        mobile = mobileMatch[1].trim();
-      }
-      
-      // Extract email
-      const emailMatch = spocDetails.match(/Email:\s*([^\s]+)/i);
-      if (emailMatch) {
-        email = emailMatch[1].trim();
+      // Try labeled format: "Contact person: ...", "Mobile: ...", "Email: ..."
+      const contactMatch = spocDetails.match(/Contact\s*person:\s*(.+?)(?=\s*(?:Mobile|Email|$))/is);
+      if (contactMatch) contactPerson = contactMatch[1].trim();
+
+      const mobileMatch = spocDetails.match(/Mobile:\s*([+\d][\d\s-]*)/i);
+      if (mobileMatch) mobile = mobileMatch[1].trim();
+
+      const emailMatch = spocDetails.match(/Email:\s*([^\s]+@[^\s]+)/i);
+      if (emailMatch) email = emailMatch[1].trim();
+
+      // Fallback: parse unlabeled lines
+      if (!contactPerson || !mobile || !email) {
+        const lines = spocDetails.split(/\n/).map((l: string) => l.trim()).filter(Boolean);
+        for (const line of lines) {
+          if (!contactPerson && !line.match(/^\d/) && !line.includes('@') && !line.match(/^[+]?\d/)) {
+            contactPerson = line;
+          }
+          if (!mobile) {
+            const phoneMatch = line.match(/([+]?\d[\d\s-]{9,})/);
+            if (phoneMatch) mobile = phoneMatch[1].trim();
+          }
+          if (!email && line.includes('@')) {
+            email = line.trim();
+          }
+        }
       }
     }
 
@@ -205,7 +215,10 @@ serve(async (req) => {
     const finalMobile = saleFields["Mobile"] || saleFields["mobile"] || saleFields["Phone"] || saleFields["phone"] || mobile;
     const finalEmail = saleFields["Email"] || saleFields["email"] || email;
 
-    console.log("Final parsed contact info:", JSON.stringify({ finalContactPerson, finalMobile, finalEmail, billingAddress: saleFields["Billing Address"] || saleFields["billing_address"] || "" }));
+    // Billing address: field is called "address" in Airtable
+    const billingAddress = saleFields["address"] || saleFields["Billing Address"] || saleFields["billing_address"] || "";
+
+    console.log("Final parsed contact info:", JSON.stringify({ finalContactPerson, finalMobile, finalEmail, billingAddress }));
 
     return new Response(
       JSON.stringify({
@@ -215,7 +228,7 @@ serve(async (req) => {
             invoiceNumber: saleFields.sales_invoice_number || saleFields["Invoice Number"] || invoiceNumber,
             srNo: saleFields["Sr No"] || saleFields.sr_no || invoiceNumber,
             invoiceDate: saleFields["Invoice Date"] || saleFields.invoice_date || "",
-            billingAddress: saleFields["Billing Address"] || saleFields.billing_address || "",
+            billingAddress: billingAddress,
             gst: saleFields["GST"] || saleFields.gst || "",
             contactPerson: finalContactPerson,
             mobile: finalMobile,
