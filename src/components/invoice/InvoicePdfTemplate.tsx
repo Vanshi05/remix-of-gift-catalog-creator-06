@@ -191,12 +191,11 @@ const formatCurrency = (amount: number) => {
 
 const parseConfigItems = (config: string | string[] | undefined): string[] => {
   if (!config) return [];
-  const configStr = typeof config === 'string' ? config : config.join(' ');
+  const configStr = typeof config === 'string' ? config : config.join('\n');
+  if (!configStr.trim()) return [];
   const matches = configStr.match(/\(\d+\)\s*[^|()]+/g);
-  if (matches) {
-    return matches.map(m => m.trim());
-  }
-  return [];
+  if (matches && matches.length > 0) return matches.map(m => m.trim());
+  return configStr.split(/\n/).map(l => l.trim()).filter(Boolean);
 };
 
 export const InvoicePdfTemplate = ({ data }: InvoicePdfTemplateProps) => {
