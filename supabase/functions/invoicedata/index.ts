@@ -90,9 +90,11 @@ serve(async (req) => {
 
     const liData = await liResponse.json();
     const lineItems = (liData.records || []).map((record: any) => {
-      // gh_config is a lookup field in Sale_LI that returns an array from Gift Hamper table
+      // Use fancy_config from Sale_LI (lookup from Gift Hamper table), fallback to gh_config
+      const fancyConfigRaw = record.fields.fancy_config || record.fields["fancy_config"] || "";
       const ghConfigRaw = record.fields.gh_config || record.fields["gh_config"] || "";
-      const ghConfig = Array.isArray(ghConfigRaw) ? ghConfigRaw.join("\n") : (ghConfigRaw || "");
+      const configRaw = fancyConfigRaw || ghConfigRaw;
+      const ghConfig = Array.isArray(configRaw) ? configRaw.join("\n") : (configRaw || "");
       
       return {
         id: record.id,
