@@ -169,7 +169,7 @@ export const CatalogPreview = forwardRef<HTMLDivElement, CatalogPreviewProps>(
                               position: 'absolute',
                               left: 0,
                               right: 0,
-                              top: renderMode === "export" ? "6px" : "5px",
+                              top: renderMode === "export" ? "7px" : "5px",
                               borderTop: '1px solid #7a6451',
                               pointerEvents: 'none',
                             }}
