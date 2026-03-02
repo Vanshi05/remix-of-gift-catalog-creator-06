@@ -45,8 +45,7 @@ export const CatalogPreview = forwardRef<HTMLDivElement, CatalogPreviewProps>(
 
     const salePrice = page.preTaxPrice;
     const originalPrice = salePrice ? Math.round(salePrice * 1.33) : null; // ~25% markup for strikethrough
-
-    // Template Page - exact match to reference design
+    const mrpStrikeTop = renderMode === "export" ? "0.62em" : "0.54em";
     return (
       <div
         ref={ref}
@@ -154,25 +153,26 @@ export const CatalogPreview = forwardRef<HTMLDivElement, CatalogPreviewProps>(
                       <span
                         style={{
                           position: 'relative',
-                          display: 'inline-block',
-                          lineHeight: '10px',
-                          height: '10px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          lineHeight: 1,
                           verticalAlign: 'baseline',
                         }}
                       >
-                        <span style={{ lineHeight: '10px', display: 'inline-block' }}>
+                        <span style={{ display: 'inline-block' }}>
                           {originalPrice.toLocaleString('en-IN')}
                         </span>
-                          <span
-                            aria-hidden="true"
-                            style={{
-                              position: 'absolute',
-                              left: 0,
-                              right: 0,
-                              top: renderMode === "export" ? "8px" : "5px",
-                              borderTop: '1px solid #7a6451',
-                              pointerEvents: 'none',
-                            }}
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            position: 'absolute',
+                            left: 0,
+                            right: 0,
+                            top: mrpStrikeTop,
+                            height: '1px',
+                            backgroundColor: '#7a6451',
+                            pointerEvents: 'none',
+                          }}
                         />
                       </span>
                   </span>
