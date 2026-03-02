@@ -45,7 +45,7 @@ export const CatalogPreview = forwardRef<HTMLDivElement, CatalogPreviewProps>(
 
     const salePrice = page.preTaxPrice;
     const originalPrice = salePrice ? Math.round(salePrice * 1.33) : null; // ~25% markup for strikethrough
-    const mrpStrikeTop = renderMode === "export" ? "0.72em" : "0.54em";
+    const mrpStrikeTop = renderMode === "export" ? "0.80em" : "0.54em";
     return (
       <div
         ref={ref}
