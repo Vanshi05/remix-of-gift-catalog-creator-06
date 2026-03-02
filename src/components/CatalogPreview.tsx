@@ -109,27 +109,28 @@ export const CatalogPreview = forwardRef<HTMLDivElement, CatalogPreviewProps>(
             </p>
 
             {/* Items List */}
-            <ul className="flex-1 space-y-2 overflow-hidden" style={{ listStyleType: 'disc', paddingLeft: '16px' }}>
+            <div className="flex-1 space-y-2 overflow-hidden" style={{ paddingLeft: '4px' }}>
               {page.items.length > 0 && page.items.some(item => item) ? (
                 page.items.filter(item => item).map((item, index) => (
-                  <li 
+                  <div 
                     key={index} 
-                    className="text-[10px]"
+                    className="text-[10px] flex"
                     style={{ 
                       color: '#7a6451',
                       fontFamily: "'Asap', sans-serif",
                       lineHeight: '1.5',
                     }}
                   >
-                    {item}
-                  </li>
+                    <span style={{ marginRight: '6px', flexShrink: 0 }}>•</span>
+                    <span>{item}</span>
+                  </div>
                 ))
               ) : (
-                <li className="text-[10px] text-muted-foreground/50 italic" style={{ listStyleType: 'none' }}>
+                <div className="text-[10px] text-muted-foreground/50 italic">
                   Add items to your hamper...
-                </li>
+                </div>
               )}
-            </ul>
+            </div>
 
             {/* Footer Section */}
             <div className="mt-auto pt-3 space-y-2 border-t border-gray-200">
@@ -148,8 +149,10 @@ export const CatalogPreview = forwardRef<HTMLDivElement, CatalogPreviewProps>(
                     className="text-[10px]"
                     style={{ color: '#7a6451', fontFamily: "'Asap', sans-serif" }}
                   >
-                    <span>MRP </span>
-                    <del>{originalPrice.toLocaleString('en-IN')}</del>
+                    MRP{' '}
+                    <span style={{ textDecoration: 'line-through', textDecorationColor: '#7a6451' }}>
+                      {originalPrice.toLocaleString('en-IN')}
+                    </span>
                   </span>
                 )}
                 <span 
