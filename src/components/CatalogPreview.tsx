@@ -150,8 +150,20 @@ export const CatalogPreview = forwardRef<HTMLDivElement, CatalogPreviewProps>(
                     style={{ color: '#7a6451', fontFamily: "'Asap', sans-serif" }}
                   >
                     MRP{' '}
-                    <span style={{ textDecoration: 'line-through', textDecorationColor: '#7a6451' }}>
-                      {originalPrice.toLocaleString('en-IN')}
+                    <span style={{ position: 'relative', display: 'inline-block', lineHeight: 1 }}>
+                      <span>{originalPrice.toLocaleString('en-IN')}</span>
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          top: '52%',
+                          borderTop: '1px solid #7a6451',
+                          transform: 'translateY(-50%)',
+                          pointerEvents: 'none',
+                        }}
+                      />
                     </span>
                   </span>
                 )}
