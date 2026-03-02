@@ -12,7 +12,7 @@ export const MultiPagePreview = forwardRef<HTMLDivElement, MultiPagePreviewProps
       <div ref={ref}>
         {pages.map((page) => (
           <div key={page.id} className="pdf-page">
-            <CatalogPreview page={page} />
+            <CatalogPreview page={page} renderMode="export" />
           </div>
         ))}
       </div>
