@@ -3,10 +3,11 @@ import { CatalogPageData } from "./CatalogForm";
 
 interface CatalogPreviewProps {
   page: CatalogPageData;
+  renderMode?: "live" | "export";
 }
 
 export const CatalogPreview = forwardRef<HTMLDivElement, CatalogPreviewProps>(
-  ({ page }, ref) => {
+  ({ page, renderMode = "live" }, ref) => {
     // Full Image Page - just the image covering the entire page
     if (page.type === "full-image") {
       return (
@@ -162,16 +163,16 @@ export const CatalogPreview = forwardRef<HTMLDivElement, CatalogPreviewProps>(
                         <span style={{ lineHeight: '10px', display: 'inline-block' }}>
                           {originalPrice.toLocaleString('en-IN')}
                         </span>
-                        <span
-                          aria-hidden="true"
-                          style={{
-                            position: 'absolute',
-                            left: 0,
-                            right: 0,
-                            top: '6px',
-                            borderTop: '1px solid #7a6451',
-                            pointerEvents: 'none',
-                          }}
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              position: 'absolute',
+                              left: 0,
+                              right: 0,
+                              top: renderMode === "export" ? "6px" : "5px",
+                              borderTop: '1px solid #7a6451',
+                              pointerEvents: 'none',
+                            }}
                         />
                       </span>
                   </span>
