@@ -78,6 +78,8 @@ const Index = () => {
   };
 
   const handleDownloadPPT = async () => {
+    if (!multiPageRef.current) return;
+
     const invalidPages = pages.filter((p) => !p.image);
     if (invalidPages.length > 0) {
       toast.error(`Please add an image to all ${pages.length} pages`);
@@ -91,212 +93,28 @@ const Index = () => {
       pptx.defineLayout({ name: 'CATALOG', width: 10, height: 5.25 });
       pptx.layout = 'CATALOG';
 
-      // Helper to get image props for PptxGenJS
-      const getImageProps = (imageSrc: string) => {
-        // Check if it's a base64 data URI
-        if (imageSrc.startsWith('data:')) {
-          return { data: imageSrc };
-        }
-        // Otherwise it's a URL
-        return { path: imageSrc };
-      };
+      const nodes = Array.from(
+        multiPageRef.current.querySelectorAll<HTMLElement>(".pdf-page")
+      );
 
-      for (const page of pages) {
+      for (const node of nodes) {
+        const canvas = await html2canvas(node, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          width: 1200,
+          height: 630,
+        });
+
+        const imgData = canvas.toDataURL("image/png");
         const slide = pptx.addSlide();
-        
-        // White background
-        slide.addShape('rect', { x: 0, y: 0, w: '100%', h: '100%', fill: { color: 'FFFFFF' } });
-
-        const imageProps = getImageProps(page.image!);
-
-        if (page.type === "full-image") {
-          slide.addImage({
-            ...imageProps,
-            x: 0,
-            y: 0,
-            w: '100%',
-            h: '100%',
-          });
-        } else {
-          // Layout: Image 65%, Content 35% with overlapping white card
-          const slideW = 10;
-          const slideH = 5.25;
-          const imageW = 6.5; // 65%
-          const contentW = 3.5; // 35%
-          const beigeX = imageW;
-          const whiteCardOverlap = 0.3;
-          const cardMarginY = 0.3;
-          const cardMarginRight = 0.2;
-          
-          // Left side: Image (65% width)
-          slide.addImage({
-            ...imageProps,
-            x: 0,
-            y: 0,
-            w: imageW,
-            h: slideH,
-          });
-
-          // Right side beige background
-          slide.addShape('rect', { 
-            x: beigeX, 
-            y: 0, 
-            w: contentW, 
-            h: slideH, 
-            fill: { color: 'EDE2D6' } 
-          });
-
-          // White content card (overlaps image slightly)
-          const whiteCardX = beigeX - whiteCardOverlap;
-          const whiteCardW = contentW - cardMarginRight + whiteCardOverlap;
-          const whiteCardY = cardMarginY;
-          const whiteCardH = slideH - (cardMarginY * 2);
-          
-          slide.addShape('rect', { 
-            x: whiteCardX, 
-            y: whiteCardY, 
-            w: whiteCardW, 
-            h: whiteCardH, 
-            fill: { color: 'FFFFFF' },
-            shadow: { type: 'outer', blur: 6, offset: 2, color: '000000', opacity: 0.08 },
-          });
-
-          // Content positioning within white card
-          const contentX = whiteCardX + 0.25;
-          const contentW2 = whiteCardW - 0.5;
-
-          // Title - Asap font, brown #7a6451
-          slide.addText(page.title || "Hamper Title", {
-            x: contentX,
-            y: whiteCardY + 0.25,
-            w: contentW2,
-            h: 0.5,
-            fontSize: 18,
-            bold: true,
-            color: '7A6451',
-            fontFace: 'Asap',
-          });
-
-          // Description
-          let currentY = whiteCardY + 0.8;
-          if (page.description) {
-            slide.addText(page.description, {
-              x: contentX,
-              y: currentY,
-              w: contentW2,
-              h: 0.7,
-              fontSize: 10,
-              color: '7A6451',
-              fontFace: 'Asap',
-              lineSpacing: 11,
-              paraSpaceAfter: 0,
-              paraSpaceBefore: 0,
-            });
-            currentY += 0.75;
-          }
-
-          // Items as bullet list
-          const bulletItems = page.items
-            .filter(item => item)
-            .map(item => ({ 
-              text: item, 
-              options: { 
-                bullet: { type: 'bullet' as const },
-                color: '7A6451',
-                fontSize: 10,
-                fontFace: 'Asap',
-                paraSpaceAfter: 0,
-                paraSpaceBefore: 0,
-              } 
-            }));
-
-          if (bulletItems.length > 0) {
-            slide.addText(bulletItems, {
-              x: contentX,
-              y: currentY,
-              w: contentW2,
-              h: 2.0,
-              valign: 'top',
-              lineSpacing: 11,
-              paraSpaceAfter: 0,
-              paraSpaceBefore: 0,
-            });
-          }
-
-          // Footer section at bottom of white card
-          const footerY = whiteCardY + whiteCardH - 0.8;
-          
-          // Divider line
-          slide.addShape('line', {
-            x: contentX,
-            y: footerY - 0.1,
-            w: contentW2,
-            h: 0,
-            line: { color: 'E0E0E0', width: 0.5 },
-          });
-
-          // Eco stats - green italic
-          const ecoText = `${page.plasticPercent || "80"}% less plastic pollution | ${page.carbonPercent || "71"}% less carbon emissions`;
-          slide.addText(ecoText, {
-            x: contentX,
-            y: footerY,
-            w: contentW2,
-            h: 0.25,
-            fontSize: 10,
-            italic: true,
-            color: '2D6A4F',
-            fontFace: 'Asap',
-          });
-
-          // Pricing section
-          const salePrice = page.preTaxPrice;
-          const originalPrice = salePrice ? Math.round(salePrice * 1.33) : null;
-          
-          const priceTextParts: Array<{ text: string; options: Record<string, unknown> }> = [];
-          
-          if (originalPrice) {
-            priceTextParts.push({
-              text: `MRP ${originalPrice.toLocaleString('en-IN')}`,
-              options: { 
-                strike: true, 
-                fontSize: 10, 
-                color: '7A6451',
-                fontFace: 'Asap',
-              }
-            });
-            priceTextParts.push({
-              text: '  ',
-              options: { fontSize: 10 }
-            });
-          }
-          
-          priceTextParts.push({
-            text: salePrice ? `₹${salePrice.toLocaleString('en-IN')}` : '₹750',
-            options: { 
-              bold: true, 
-              fontSize: 10, 
-              color: '7A6451',
-              fontFace: 'Asap',
-            }
-          });
-          
-          priceTextParts.push({
-            text: '   Bulk pricing | Tax & shipping extra',
-            options: { 
-              fontSize: 10, 
-              color: '7A6451',
-              fontFace: 'Asap',
-            }
-          });
-
-          slide.addText(priceTextParts, {
-            x: contentX,
-            y: footerY + 0.25,
-            w: contentW2,
-            h: 0.35,
-            valign: 'middle',
-          });
-        }
+        slide.addImage({
+          data: imgData,
+          x: 0,
+          y: 0,
+          w: '100%',
+          h: '100%',
+        });
       }
 
       await pptx.writeFile({ fileName: `catalog_${pages.length}_pages.pptx` });
