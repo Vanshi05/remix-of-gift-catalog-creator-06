@@ -109,26 +109,23 @@ export const CatalogPreview = forwardRef<HTMLDivElement, CatalogPreviewProps>(
             </p>
 
             {/* Items List */}
-            <ul className="flex-1 space-y-2 overflow-hidden">
+            <ul className="flex-1 space-y-2 overflow-hidden" style={{ listStyleType: 'disc', paddingLeft: '16px' }}>
               {page.items.length > 0 && page.items.some(item => item) ? (
                 page.items.filter(item => item).map((item, index) => (
                   <li 
                     key={index} 
-                    className="flex items-start gap-2 text-[10px]"
+                    className="text-[10px]"
                     style={{ 
                       color: '#7a6451',
-                      fontFamily: "'Asap', sans-serif"
+                      fontFamily: "'Asap', sans-serif",
+                      lineHeight: '1.5',
                     }}
                   >
-                    <span 
-                      className="mt-[5px] w-[3px] h-[3px] rounded-full shrink-0"
-                      style={{ backgroundColor: '#7a6451' }}
-                    />
-                    <span className="leading-[1.5]">{item}</span>
+                    {item}
                   </li>
                 ))
               ) : (
-                <li className="text-[10px] text-muted-foreground/50 italic">
+                <li className="text-[10px] text-muted-foreground/50 italic" style={{ listStyleType: 'none' }}>
                   Add items to your hamper...
                 </li>
               )}
@@ -148,10 +145,11 @@ export const CatalogPreview = forwardRef<HTMLDivElement, CatalogPreviewProps>(
               <div className="flex items-baseline gap-2 flex-wrap">
                 {originalPrice && (
                   <span 
-                    className="text-[10px] line-through"
+                    className="text-[10px]"
                     style={{ color: '#7a6451', fontFamily: "'Asap', sans-serif" }}
                   >
-                    MRP {originalPrice.toLocaleString('en-IN')}
+                    <span>MRP </span>
+                    <del>{originalPrice.toLocaleString('en-IN')}</del>
                   </span>
                 )}
                 <span 
