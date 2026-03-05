@@ -72,6 +72,7 @@ serve(async (req) => {
           name: record["Gift Hamper Name"] || "",
           image,
           gh_bom: record.gh_bom || "",
+          fancy_config: record.fancy_config || "",
           pre_tax_sale_price_without_shipping: record.pre_tax_sale_price_without_shipping || 0,
         },
       }),
