@@ -135,6 +135,7 @@ export function CatalogForm({ pages, activePageIndex, onPagesChange, onActivePag
       updatePage(pageId, {
         title: data.name,
         image: data.image,
+        description: data.fancy_config || "",
         items: bomItems.length > 0 ? bomItems : [""],
         ghId: ghId,
         preTaxPrice: data.pre_tax_sale_price_without_shipping,
@@ -213,7 +214,7 @@ export function CatalogForm({ pages, activePageIndex, onPagesChange, onActivePag
           type: "template",
           image: data.image,
           title: data.name,
-          description: "",
+          description: data.fancy_config || "",
           items: bomItems.length > 0 ? bomItems : [""],
           plasticPercent: "",
           carbonPercent: "",
