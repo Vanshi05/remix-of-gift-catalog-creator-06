@@ -97,21 +97,10 @@ export const CatalogPreview = forwardRef<HTMLDivElement, CatalogPreviewProps>(
               {page.title || "Hamper Title"}
             </h1>
 
-            {/* Description */}
-            <p 
-              className="text-[10px] leading-[1.7] mb-4"
-              style={{ 
-                color: '#7a6451',
-                fontFamily: "'Asap', sans-serif"
-              }}
-            >
-              {page.description || "Add a compelling description of your curated hamper..."}
-            </p>
-
-            {/* Items List */}
+            {/* Description as bullet points */}
             <div className="flex-1 space-y-2 overflow-hidden" style={{ paddingLeft: '4px' }}>
-              {page.items.length > 0 && page.items.some(item => item) ? (
-                page.items.filter(item => item).map((item, index) => (
+              {page.description ? (
+                page.description.split('\n').filter((line: string) => line.trim()).map((line: string, index: number) => (
                   <div 
                     key={index} 
                     className="text-[10px] flex"
@@ -122,12 +111,12 @@ export const CatalogPreview = forwardRef<HTMLDivElement, CatalogPreviewProps>(
                     }}
                   >
                     <span style={{ marginRight: '6px', flexShrink: 0 }}>•</span>
-                    <span>{item}</span>
+                    <span>{line.trim()}</span>
                   </div>
                 ))
               ) : (
                 <div className="text-[10px] text-muted-foreground/50 italic">
-                  Add items to your hamper...
+                  Add description to your hamper...
                 </div>
               )}
             </div>
