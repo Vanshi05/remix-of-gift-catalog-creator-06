@@ -30,6 +30,7 @@ import {
   DEFAULT_QUESTIONNAIRE,
   HERO_OPTIONS,
   PACKAGING_OPTIONS,
+  PACKAGING_COST_MAP,
   CATEGORY_OPTIONS,
   MUST_HAVE_OPTIONS,
 } from "./types";
@@ -126,6 +127,8 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
 
   const fmt = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
+  const fillerBudgetPercent = Math.max(0, 100 - data.heroBudgetPercent - data.supportingBudgetPercent);
+
   return (
     <div className="max-w-2xl mx-auto w-full">
       {/* Step indicators */}
@@ -215,6 +218,7 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
                   </PopoverContent>
                 </Popover>
                 {errors.deliveryDate && <p className="text-[10px] text-destructive">{errors.deliveryDate}</p>}
+                <p className="text-[10px] text-muted-foreground">Delivery date helps ensure suggested hampers can be prepared before the required date.</p>
               </div>
             </div>
           </div>
@@ -225,19 +229,22 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
           <div className="max-w-[580px] mx-auto w-full space-y-4">
             <h2 className="text-sm font-bold text-foreground">Budget & Quantity</h2>
 
-            {/* Mode toggle */}
-            <div className="flex gap-2 justify-center">
-              {(["per-hamper", "total"] as const).map((m) => (
-                <Button
-                  key={m}
-                  variant={data.budgetMode === m ? "default" : "outline"}
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={() => update("budgetMode", m)}
-                >
-                  {m === "per-hamper" ? "Per Hamper" : "Total Budget"}
-                </Button>
-              ))}
+            {/* Budget Mode toggle */}
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-muted-foreground">Budget Mode</Label>
+              <div className="flex gap-2 justify-center">
+                {(["per-hamper", "total"] as const).map((m) => (
+                  <Button
+                    key={m}
+                    variant={data.budgetMode === m ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => update("budgetMode", m)}
+                  >
+                    {m === "per-hamper" ? "Per Hamper" : "Total Budget"}
+                  </Button>
+                ))}
+              </div>
             </div>
 
             {/* Budget input group */}
@@ -287,6 +294,12 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
                   </Button>
                 ))}
               </div>
+
+              {data.budgetMode === "total" && data.quantity > 0 && (
+                <p className="text-[10px] text-muted-foreground">
+                  ≈ {fmt(Math.round(data.budget / data.quantity))} per hamper
+                </p>
+              )}
             </div>
 
             {/* Quantity */}
@@ -306,10 +319,10 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
         {/* Step 2: Theme */}
         {step === 2 && (
           <div className="space-y-4">
-            <h2 className="text-sm font-bold text-foreground">Hero Preference & Theme</h2>
+            <h2 className="text-sm font-bold text-foreground">Preference & Theme</h2>
             <div className="space-y-3">
               <div className="space-y-1">
-                <Label className="text-xs">Hero Product Category</Label>
+                <Label className="text-xs">Preferred Product Category</Label>
                 <Select value={data.heroPreference} onValueChange={(v) => update("heroPreference", v)}>
                   <SelectTrigger className="h-8 text-sm">
                     <SelectValue />
@@ -321,29 +334,13 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Packaging Type</Label>
-                <div className="flex gap-1.5 flex-wrap">
-                  {PACKAGING_OPTIONS.map((p) => (
-                    <Button
-                      key={p.value}
-                      variant={data.packagingType === p.value ? "default" : "outline"}
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => update("packagingType", p.value)}
-                    >
-                      {p.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         )}
 
         {/* Step 3: Constraints */}
         {step === 3 && (
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
             <h2 className="text-sm font-bold text-foreground">Constraints</h2>
             <div className="space-y-3">
               <div className="space-y-1.5">
@@ -384,6 +381,106 @@ const HamperWizard = ({ onGenerate }: HamperWizardProps) => {
                   placeholder="e.g. No nuts, vegan only"
                   className="h-8 text-sm"
                 />
+              </div>
+
+              {/* Hamper Structure */}
+              <div className="border-t border-border pt-3 space-y-2">
+                <Label className="text-xs font-bold text-foreground">Hamper Structure</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Hero Products</Label>
+                    <Input
+                      type="number"
+                      value={data.heroCount}
+                      onChange={(e) => update("heroCount", Math.min(3, Math.max(0, Number(e.target.value) || 0)))}
+                      className="h-8 text-sm text-center"
+                      min={0} max={3}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Supporting Products</Label>
+                    <Input
+                      type="number"
+                      value={data.supportingCount}
+                      onChange={(e) => update("supportingCount", Math.min(3, Math.max(0, Number(e.target.value) || 0)))}
+                      className="h-8 text-sm text-center"
+                      min={0} max={3}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Filler Products</Label>
+                    <Input
+                      type="number"
+                      value={data.fillerCount}
+                      onChange={(e) => update("fillerCount", Math.min(6, Math.max(0, Number(e.target.value) || 0)))}
+                      className="h-8 text-sm text-center"
+                      min={0} max={6}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Budget Allocation */}
+              <div className="border-t border-border pt-3 space-y-2">
+                <Label className="text-xs font-bold text-foreground">Budget Allocation</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Hero Budget %</Label>
+                    <Input
+                      type="number"
+                      value={data.heroBudgetPercent}
+                      onChange={(e) => update("heroBudgetPercent", Math.min(60, Math.max(0, Number(e.target.value) || 0)))}
+                      className="h-8 text-sm text-center"
+                      min={0} max={60}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Supporting Budget %</Label>
+                    <Input
+                      type="number"
+                      value={data.supportingBudgetPercent}
+                      onChange={(e) => update("supportingBudgetPercent", Math.min(40, Math.max(0, Number(e.target.value) || 0)))}
+                      className="h-8 text-sm text-center"
+                      min={0} max={40}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Filler Budget %</Label>
+                    <div className="h-8 flex items-center justify-center text-sm font-medium bg-muted rounded-md">
+                      {fillerBudgetPercent}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Packaging (moved from Theme) */}
+              <div className="border-t border-border pt-3 space-y-2">
+                <Label className="text-xs font-bold text-foreground">Packaging Type</Label>
+                <div className="flex gap-1.5 flex-wrap">
+                  {PACKAGING_OPTIONS.map((p) => (
+                    <Button
+                      key={p.value}
+                      variant={data.packagingType === p.value ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        update("packagingType", p.value);
+                        update("packagingCost", PACKAGING_COST_MAP[p.value]);
+                      }}
+                    >
+                      {p.label} (~{fmt(p.cost)})
+                    </Button>
+                  ))}
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Packaging Cost (Approx)</Label>
+                  <Input
+                    type="number"
+                    value={data.packagingCost}
+                    onChange={(e) => update("packagingCost", Math.max(0, Number(e.target.value) || 0))}
+                    className="h-8 text-sm w-[120px]"
+                  />
+                </div>
               </div>
             </div>
           </div>

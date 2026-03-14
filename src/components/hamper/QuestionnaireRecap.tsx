@@ -16,6 +16,7 @@ const fmt = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 const QuestionnaireRecap = ({ data, onEdit }: QuestionnaireRecapProps) => {
   const heroLabel = HERO_OPTIONS.find((o) => o.value === data.heroPreference)?.label ?? data.heroPreference;
   const packLabel = PACKAGING_OPTIONS.find((o) => o.value === data.packagingType)?.label ?? data.packagingType;
+  const fillerPct = Math.max(0, 100 - data.heroBudgetPercent - data.supportingBudgetPercent);
 
   return (
     <Card>
@@ -32,8 +33,10 @@ const QuestionnaireRecap = ({ data, onEdit }: QuestionnaireRecapProps) => {
           <Row label="Delivery" value={data.deliveryDate ? format(data.deliveryDate, "dd MMM yyyy") : "—"} />
           <Row label="Budget" value={`${fmt(data.budget)} ${data.budgetMode === "total" ? "(total)" : "(each)"}`} />
           <Row label="Qty" value={String(data.quantity)} />
-          <Row label="Hero" value={heroLabel} />
-          <Row label="Packaging" value={packLabel} />
+          <Row label="Category" value={heroLabel} />
+          <Row label="Packaging" value={`${packLabel} (${fmt(data.packagingCost)})`} />
+          <Row label="Structure" value={`${data.heroCount}H / ${data.supportingCount}S / ${data.fillerCount}F`} />
+          <Row label="Budget %" value={`${data.heroBudgetPercent}H / ${data.supportingBudgetPercent}S / ${fillerPct}F`} />
 
           {data.mustHaveItems.length > 0 && (
             <div>
