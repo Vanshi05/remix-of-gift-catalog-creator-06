@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
-  Minus, Plus, RefreshCw, FileText, Save, Send, CheckCircle2, RotateCcw,
+  Minus, Plus, RefreshCw, FileText, Save, Send, RotateCcw,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { GeneratedHamper, Feasibility } from "./types";
@@ -22,6 +23,20 @@ const feasibilityMeta: Record<Feasibility, { label: string; color: string; bg: s
 
 const fmt = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
+const ROLE_ORDER = ["hero", "supporting", "filler", "packaging"] as const;
+const ROLE_LABELS: Record<string, string> = {
+  hero: "Hero",
+  supporting: "Supporting",
+  filler: "Fillers",
+  packaging: "Packaging",
+};
+
+const inventoryStatusColor: Record<string, string> = {
+  Safe: "text-[hsl(var(--eco-green))]",
+  Low: "text-accent",
+  "Out of Stock": "text-destructive",
+};
+
 const HamperPreview = ({ hamper, qtyOverrides, onAdjustQty }: HamperPreviewProps) => {
   const pricing = React.useMemo(() => {
     let taxable = 0;
@@ -38,6 +53,16 @@ const HamperPreview = ({ hamper, qtyOverrides, onAdjustQty }: HamperPreviewProps
     toast({ title: action, description: `${hamper.name} — ${fmt(pricing.grand)}` });
   };
 
+  // Group items by role
+  const groupedItems = React.useMemo(() => {
+    const groups: Record<string, typeof hamper.items> = {};
+    for (const item of hamper.items) {
+      if (!groups[item.role]) groups[item.role] = [];
+      groups[item.role].push(item);
+    }
+    return groups;
+  }, [hamper.items]);
+
   return (
     <div className="flex flex-col gap-2.5">
       {/* Preview image */}
@@ -50,35 +75,63 @@ const HamperPreview = ({ hamper, qtyOverrides, onAdjustQty }: HamperPreviewProps
               {fMeta.label}
             </div>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">{hamper.confidence}% confidence match</p>
         </CardContent>
       </Card>
 
-      {/* Editable items */}
+      {/* Items grouped by role */}
       <Card className="flex-shrink-0">
-        <CardContent className="p-2.5 space-y-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Items</p>
-          {hamper.items.map((item) => {
-            const qty = qtyOverrides[item.name] ?? item.qty;
+        <CardContent className="p-2.5 space-y-2">
+          {ROLE_ORDER.map((role) => {
+            const items = groupedItems[role];
+            if (!items || items.length === 0) return null;
             return (
-              <div key={item.name} className="flex items-center justify-between text-xs gap-1.5">
-                <span className="flex-1 truncate">{item.name}</span>
-                <span className="text-muted-foreground w-14 text-right">{fmt(item.unitPrice)}</span>
-                <div className="flex items-center gap-0.5">
-                  <Button variant="outline" size="icon" className="h-5 w-5" onClick={() => onAdjustQty(item.name, -1)}>
-                    <Minus className="h-2.5 w-2.5" />
-                  </Button>
-                  <span className="w-5 text-center text-[11px] font-semibold tabular-nums">{qty}</span>
-                  <Button variant="outline" size="icon" className="h-5 w-5" onClick={() => onAdjustQty(item.name, 1)}>
-                    <Plus className="h-2.5 w-2.5" />
-                  </Button>
+              <div key={role}>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{ROLE_LABELS[role]}</p>
+                <div className="space-y-1">
+                  {items.map((item) => {
+                    const qty = qtyOverrides[item.name] ?? item.qty;
+                    return (
+                      <div key={item.name} className="flex items-center justify-between text-xs gap-1.5">
+                        <span className="flex-1 truncate">{item.name}</span>
+                        <span className="text-muted-foreground w-14 text-right">{fmt(item.unitPrice)}</span>
+                        <div className="flex items-center gap-0.5">
+                          <Button variant="outline" size="icon" className="h-5 w-5" onClick={() => onAdjustQty(item.name, -1)}>
+                            <Minus className="h-2.5 w-2.5" />
+                          </Button>
+                          <span className="w-5 text-center text-[11px] font-semibold tabular-nums">{qty}</span>
+                          <Button variant="outline" size="icon" className="h-5 w-5" onClick={() => onAdjustQty(item.name, 1)}>
+                            <Plus className="h-2.5 w-2.5" />
+                          </Button>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground">
+                          <RefreshCw className="h-2.5 w-2.5" />
+                        </Button>
+                      </div>
+                    );
+                  })}
                 </div>
-                <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground">
-                  <RefreshCw className="h-2.5 w-2.5" />
-                </Button>
               </div>
             );
           })}
+        </CardContent>
+      </Card>
+
+      {/* Inventory status */}
+      <Card className="flex-shrink-0">
+        <CardContent className="p-2.5 space-y-1 text-xs">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Inventory</p>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Stock Available</span>
+            <span className="tabular-nums">{hamper.inventory.stockAvailable}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Required Quantity</span>
+            <span className="tabular-nums">{hamper.inventory.requiredQuantity}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Status</span>
+            <span className={cn("font-medium", inventoryStatusColor[hamper.inventory.status])}>{hamper.inventory.status}</span>
+          </div>
         </CardContent>
       </Card>
 
@@ -112,9 +165,18 @@ const HamperPreview = ({ hamper, qtyOverrides, onAdjustQty }: HamperPreviewProps
         <Button variant="secondary" size="sm" className="gap-1 text-[11px] h-8" onClick={() => handleAction("Quote Sent")}>
           <Send className="h-3.5 w-3.5" /> Send Quote
         </Button>
-        <Button size="sm" className="gap-1 text-[11px] h-8" onClick={() => handleAction("Regenerating...")}>
-          <RotateCcw className="h-3.5 w-3.5" /> Regenerate
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="sm" className="gap-1 text-[11px] h-8" onClick={() => handleAction("Regenerating...")}>
+                <RotateCcw className="h-3.5 w-3.5" /> Regenerate
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs max-w-[200px]">Generates new hamper combinations using different supporting and filler products while keeping the same constraints.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );

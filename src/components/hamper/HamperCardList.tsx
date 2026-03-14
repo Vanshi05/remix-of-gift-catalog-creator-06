@@ -45,6 +45,12 @@ const feasibilityColor: Record<string, string> = {
   red: "bg-destructive",
 };
 
+const inventoryStatusColor: Record<string, string> = {
+  Safe: "text-[hsl(var(--eco-green))]",
+  Low: "text-accent",
+  "Out of Stock": "text-destructive",
+};
+
 const HamperCardList = ({ hampers, selectedId, onSelect }: HamperCardListProps) => {
   const [showBackups, setShowBackups] = useState(false);
   const main = hampers.filter((h) => !h.isBackup);
@@ -103,10 +109,11 @@ function HamperCardItem({
         <div className="flex items-center gap-3">
           <div className="relative flex-shrink-0">
             <img src={h.image} alt={h.name} className="w-20 h-16 object-cover rounded-l-md" />
-            {/* Confidence badge */}
-            <div className={cn("absolute top-0.5 left-0.5 h-4 w-4 rounded-full flex items-center justify-center", feasibilityColor[h.feasibility])}>
-              <span className="text-[8px] font-bold text-primary-foreground">{rank}</span>
-            </div>
+            {rank && (
+              <div className={cn("absolute top-0.5 left-0.5 h-4 w-4 rounded-full flex items-center justify-center", feasibilityColor[h.feasibility])}>
+                <span className="text-[8px] font-bold text-primary-foreground">{rank}</span>
+              </div>
+            )}
           </div>
           <div className="flex-1 py-2 pr-3 min-w-0">
             <div className="flex items-center gap-1.5 mb-0.5">
@@ -120,7 +127,6 @@ function HamperCardItem({
             <p className="text-[11px] text-muted-foreground truncate">{h.sideItems.join(" · ")}</p>
             <div className="flex items-center gap-2 mt-1">
               <span className="font-bold text-sm text-primary">{fmt(h.totalPrice)}</span>
-              <span className="text-[10px] text-muted-foreground tabular-nums">{h.confidence}% match</span>
               <div className="flex gap-1 flex-wrap">
                 {h.badges.map((b) => (
                   <Badge key={b} variant="outline" className={cn("text-[9px] px-1 py-0 gap-0.5 h-4", badgeStyle(b))}>
@@ -128,6 +134,12 @@ function HamperCardItem({
                   </Badge>
                 ))}
               </div>
+            </div>
+            {/* Inventory indicator */}
+            <div className="flex items-center gap-2 mt-0.5 text-[9px]">
+              <span className="text-muted-foreground">Stock: {h.inventory.stockAvailable}</span>
+              <span className="text-muted-foreground">Need: {h.inventory.requiredQuantity}</span>
+              <span className={cn("font-medium", inventoryStatusColor[h.inventory.status])}>{h.inventory.status}</span>
             </div>
             {/* Why chosen */}
             {h.whyChosen.length > 0 && (
